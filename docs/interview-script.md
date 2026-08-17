@@ -27,7 +27,7 @@ question lists common variants where they matter.
 | 1.4 | Érti, amit mondok? | Do you understand what I'm saying? |
 | 1.5 | Kérem a személyes iratait. | Your personal documents, please. |
 
-The learner must also be able to say: *Elnézést, nem értem. Tudná ismételni?
+The learner must also be able to say: *Elnézést, nem értem. Meg tudná ismételni?
 Kérem, mondja lassabban.* (Sorry, I don't understand. Could you repeat that?
 Please speak more slowly.) — the interview survival kit.
 
@@ -47,7 +47,7 @@ Please speak more slowly.) — the interview survival kit.
 
 | # | Hungarian | English |
 |---|---|---|
-| 3.1 | Nős? / Férjnél van? | Are you married? (m/f forms) |
+| 3.1 | Mi a családi állapota? (Nős Ön? / Férjnél van?) | What is your marital status? (Are you married?) |
 | 3.2 | Mi a házastársa neve? | What is your spouse's name? |
 | 3.3 | Vannak gyerekei? Hány gyereke van? | Do you have children? How many? |
 | 3.4 | Hogy hívják a gyerekeit? Hány évesek? | What are your children's names? How old are they? |
@@ -87,10 +87,10 @@ Hungarian citizen.
 | 6.1 | Miért szeretne magyar állampolgár lenni? | Why do you want to be a Hungarian citizen? |
 | 6.2 | Járt már Magyarországon? Hol? | Have you been to Hungary? Where? |
 | 6.3 | Mit szeret Magyarországban? | What do you like about Hungary? |
-| 6.4 | Tartja a kapcsolatot magyarországi rokonokkal? | Are you in touch with relatives in Hungary? |
+| 6.4 | Tartja a kapcsolatot a magyarországi rokonaival? | Are you in touch with your relatives in Hungary? |
 | 6.5 | Milyen magyar ünnepeket ismer? Hogyan ünnepelnek? | What Hungarian holidays do you know? How do you celebrate? |
 | 6.6 | Milyen magyar hagyományokat őriz a családja? | What Hungarian traditions does your family keep? |
-| 6.7 | Mikor van a magyar nemzeti ünnep? | When are the Hungarian national holidays? (Mar 15, Aug 20, Oct 23) |
+| 6.7 | Mikor vannak a magyar nemzeti ünnepek? | When are the Hungarian national holidays? (Mar 15, Aug 20, Oct 23) |
 
 ## 7. Lezárás — Closing
 

@@ -56,10 +56,22 @@ function entry(key) {
   return state.progress[key] || (state.progress[key] = { box: 0, due: 0, right: 0, wrong: 0 });
 }
 
-function grade(key, correct) {
+// Recognition (multiple choice, matching, self-graded cards) can only carry an
+// item to box 3. Mastery beyond that has to be earned in production — building,
+// typing, or recalling the sentence — so the scheduler keeps demanding the
+// hard thing until the learner can actually produce it.
+const RECOGNITION_CAP = 3;
+
+function grade(key, correct, production) {
   const e = entry(key);
-  if (correct) { e.box = Math.min(e.box + 1, BOX_DAYS.length - 1); e.right++; }
-  else { e.box = Math.max(e.box - 1, 0); e.wrong++; }
+  if (correct) {
+    const cap = production ? BOX_DAYS.length - 1 : RECOGNITION_CAP;
+    e.box = Math.min(e.box + 1, Math.max(cap, e.box));
+    e.right++;
+  } else {
+    e.box = Math.max(e.box - 1, 0);
+    e.wrong++;
+  }
   e.due = Date.now() + BOX_DAYS[e.box] * 86400000;
 }
 
@@ -103,11 +115,56 @@ function touchStreak() {
 // ---------- profile slots ----------
 // Chunks written with ___ get the learner's own detail dropped in, so every
 // drill rehearses the sentence they will actually say in the interview.
+//
+// Hungarian suffixes obey vowel harmony, so a template written "___-ban" must
+// become "Clevelandben" or "1985-ben" when the filled value has front vowels.
+// harmony() classifies the value by its last vowel; digit strings classify by
+// how the year is read aloud (…öt → front, …nyolc → back, and so on).
+
+const BACK_V = 'aáoóuú';
+const FRONT_V = 'eéiíöőüű';
+// Reading of a year's final element: ones digit, or the decade for …X0.
+const DIGIT_H = { 1: 'f', 2: 'f', 3: 'b', 4: 'f', 5: 'f', 6: 'b', 7: 'f', 8: 'b', 9: 'f' };
+const DECADE_H = { 1: 'f', 2: 'b', 3: 'b', 4: 'f', 5: 'f', 6: 'b', 7: 'f', 8: 'b', 9: 'f' };
+
+function harmony(value) {
+  const v = value.trim();
+  const digits = v.match(/(\d+)\s*$/);
+  if (digits) {
+    const d = digits[1];
+    const ones = Number(d[d.length - 1]);
+    if (ones) return DIGIT_H[ones];
+    const tens = Number(d[d.length - 2] || 0);
+    if (tens) return DECADE_H[tens];
+    // …00: kilencszáz (back) below 2000, kétezer (front) from 2000 up.
+    return Number(d) >= 2000 ? 'f' : 'b';
+  }
+  for (let i = v.length - 1; i >= 0; i--) {
+    const c = v[i].toLowerCase();
+    if (BACK_V.includes(c)) return 'b';
+    if (FRONT_V.includes(c)) return 'f';
+  }
+  return 'b';
+}
+
+const SUFFIX_PAIRS = { ban: 'ben', ból: 'ből', ba: 'be', nak: 'nek', val: 'vel' };
+
+function withSuffix(value, backForm) {
+  const form = harmony(value) === 'b' ? backForm : SUFFIX_PAIRS[backForm];
+  // Digits keep the hyphen (1985-ben); names take the suffix directly.
+  return /\d\s*$/.test(value) ? `${value}-${form}` : value + form;
+}
 
 function fill(text, holder) {
   if (!text.includes('___')) return text;
   const val = holder?.slot ? (state.profile[holder.slot] || '').trim() : '';
-  return val ? text.replace('___', val) : text;
+  if (!val) return text;
+  let out = text;
+  for (const back of Object.keys(SUFFIX_PAIRS)) {
+    const pat = new RegExp(`___-(?:${back}|${SUFFIX_PAIRS[back]})`, 'g');
+    out = out.replace(pat, withSuffix(val, back));
+  }
+  return out.replaceAll('___', val);
 }
 
 function chunkText(item) { return fill(item.hu, item); }
@@ -513,16 +570,22 @@ function answerDistractors(item, n) {
 }
 
 const CHUNK_TYPES = ['flash', 'listen', 'build', 'dictate'];
-const QA_TYPES = ['qa-listen', 'qa-respond', 'qa-build'];
+// The qa ladder ends in unscaffolded recall: hear the question, produce the
+// answer from nothing. It only appears once an item has some practice behind
+// it (box >= 2), so the scaffold fades instead of staying forever.
+const QA_TYPES = ['qa-listen', 'qa-respond', 'qa-build', 'qa-recall'];
 
 function exerciseFor(item, mode, i) {
   if (item.kind === 'chunk') {
     if (CHUNK_TYPES.includes(mode)) return { type: mode, item };
     return { type: CHUNK_TYPES[i % CHUNK_TYPES.length], item };
   }
-  if (mode === 'listen') return { type: 'qa-listen', item };
-  if (mode === 'build' || mode === 'dictate') return { type: 'qa-build', item };
-  return { type: QA_TYPES[i % QA_TYPES.length], item };
+  let type;
+  if (mode === 'listen') type = 'qa-listen';
+  else if (mode === 'build' || mode === 'dictate') type = 'qa-build';
+  else type = QA_TYPES[i % QA_TYPES.length];
+  if (type === 'qa-recall' && (state.progress[item.key]?.box || 0) < 2) type = 'qa-build';
+  return { type, item };
 }
 
 function buildQueue(pool, mode) {
@@ -560,17 +623,29 @@ function startSession(pool, mode, label) {
   render();
 }
 
-// A mock interview walks the topic's (or the whole script's) questions in
-// interview order. No hearts — the real interview doesn't stop either.
+// A mock interview walks the questions section by section like the real one,
+// but shuffled within each section and free to use variant phrasings, so the
+// learner can't ride the script order. No hearts — the real interview doesn't
+// stop either. Questions with some practice behind them demand unscaffolded
+// recall; the tile fallback stays available but costs the first-try credit.
 function startInterview(topics) {
   const qs = topics.flatMap((t) => t.qa).sort(scriptOrder);
   if (!qs.length) { toast('No questions here'); return; }
+  const bySection = {};
+  for (const q of qs) {
+    const sec = q.script.split('.')[0];
+    (bySection[sec] = bySection[sec] || []).push(q);
+  }
+  const ordered = Object.keys(bySection).sort((a, b) => a - b).flatMap((sec) => shuffle(bySection[sec]));
   session = {
-    queue: qs.map((w) => ({ type: 'qa-build', item: w, interview: true })),
+    queue: ordered.map((w) => ({
+      type: (state.progress[w.key]?.box || 0) >= 2 ? 'qa-recall' : 'qa-build',
+      item: w, interview: true,
+    })),
     idx: 0, mode: 'interview',
     label: topics.length > 1 ? 'Full Mock Interview' : `${topics[0].title} — Mock`,
-    right: 0, wrong: 0, xp: 0, hearts: 5, total: qs.length,
-    interview: true, firstTry: 0,
+    right: 0, wrong: 0, xp: 0, hearts: 5, total: ordered.length,
+    interview: true, firstTry: 0, missed: [],
   };
   view = 'session';
   render();
@@ -606,6 +681,7 @@ function renderSession() {
     'qa-listen': renderQaListen,
     'qa-respond': renderQaRespond,
     'qa-build': renderQaBuild,
+    'qa-recall': renderQaRecall,
   })[ex.type](ex);
 }
 
@@ -775,7 +851,7 @@ function renderDictate(ex) {
     speak(target);
     answered(exact || close, ex,
       exact ? '' : close ? `Watch the accents: <b>${esc(target)}</b>` : `${esc(target)} — ${esc(w.en)}`,
-      close ? 'Almost!' : null);
+      close ? 'Almost!' : null, false, exact);
   };
 
   $('#check').addEventListener('click', submit);
@@ -809,7 +885,7 @@ function renderMatch(ex) {
       return;
     }
     if (picked.dataset.key === tile.dataset.key) {
-      grade(tile.dataset.key, true);
+      grade(tile.dataset.key, true, false);
       picked.classList.add('done');
       tile.classList.add('done');
       picked.classList.remove('picked');
@@ -820,8 +896,8 @@ function renderMatch(ex) {
         answered(!missed, ex, missed ? 'All matched, with a few misses.' : '', 'All matched!', true);
       }
     } else {
-      grade(tile.dataset.key, false);
-      grade(picked.dataset.key, false);
+      grade(tile.dataset.key, false, false);
+      grade(picked.dataset.key, false, false);
       missed = true;
       const a = picked;
       a.classList.add('miss');
@@ -894,7 +970,7 @@ function renderQaRespond(ex) {
 
 function renderQaBuild(ex) {
   const w = ex.item;
-  const ask = ex.interview ? { hu: w.q.hu, variant: false } : askForm(w);
+  const ask = askForm(w);
   const target = answerTextOf(w);
   const { words, bank } = tileBank(target, w.topic);
   exBox().innerHTML = `
@@ -918,22 +994,91 @@ function renderQaBuild(ex) {
   });
 }
 
+// Unscaffolded recall: the question arrives, the answer has to come from
+// nothing — no tiles, no options. This is the closest drill to the real room.
+// In the mock interview, "Show me the tiles" stays available as an escape
+// hatch, but taking it forfeits the first-try credit.
+function renderQaRecall(ex) {
+  const w = ex.item;
+  const ask = askForm(w);
+  const target = answerTextOf(w);
+  exBox().innerHTML = `
+    <div class="prompt-card interviewer">
+      <div class="prompt-kind">🎙️ ${ex.interview ? 'The official asks' : 'Answer from memory'}</div>
+      <div class="prompt-word" style="font-size:22px">„${esc(ask.hu)}”</div>
+      ${state.settings.showSay ? `<div class="prompt-say">${esc(w.q.en)}</div>` : ''}
+      <button class="speak-btn" id="say">🔊 Play the question</button>
+    </div>
+    <p class="sub" style="text-align:center">Say your answer out loud, then type it — no help this time.</p>
+    <input class="type-input" id="typed" autocapitalize="off" autocomplete="off" autocorrect="off"
+           spellcheck="false" placeholder="a válaszom…">
+    <div class="accent-row">${['á','é','í','ó','ö','ő','ú','ü','ű'].map((a) => `<button class="accent-key" data-a="${a}">${a}</button>`).join('')}</div>
+    <button class="btn primary" id="check">Check</button>
+    <button class="btn ghost" id="tiles-fallback">🧱 I need the tiles${ex.interview ? ' (costs the first-try credit)' : ''}</button>`;
+
+  const input = $('#typed');
+  input.focus();
+  $('#say').addEventListener('click', () => speak(ask.hu));
+  if (state.settings.autoplay) setTimeout(() => speak(ask.hu), 250);
+
+  $$('.accent-key').forEach((k) => k.addEventListener('click', () => {
+    const start = input.selectionStart ?? input.value.length;
+    const end = input.selectionEnd ?? input.value.length;
+    input.value = input.value.slice(0, start) + k.dataset.a + input.value.slice(end);
+    input.setSelectionRange(start + 1, start + 1);
+    input.focus();
+  }));
+
+  $('#tiles-fallback').addEventListener('click', () => {
+    ex.assisted = true;
+    ex.type = 'qa-build';
+    renderQaBuild(ex);
+  });
+
+  const submit = () => {
+    const typed = normalize(input.value);
+    if (!typed) { input.focus(); return; }
+    const want = normalize(target);
+    const exact = typed === want;
+    const close = !exact && stripAccents(typed) === stripAccents(want);
+    input.disabled = true;
+    $('#check').disabled = true;
+    $('#tiles-fallback').disabled = true;
+    speak(target);
+    answered(exact || close, ex,
+      exact ? `${esc(target)} — ${esc(w.a.en)}`
+        : close ? `Watch the accents: <b>${esc(target)}</b>`
+        : `Model answer: <b>${esc(target)}</b> — ${esc(w.a.en)}`,
+      exact ? 'From memory — that counts double.' : close ? 'Almost!' : 'Not yet', false, exact);
+  };
+
+  $('#check').addEventListener('click', submit);
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); });
+}
+
 // ---------- answering / feedback ----------
 
 const PRAISE = ['Szuper!', 'Nagyon jó!', 'Ez az!', 'Remek!', 'Jól van!', 'Kiváló!'];
 const pickPraise = () => PRAISE[Math.floor(Math.random() * PRAISE.length)];
 
-function answered(correct, ex, detail, titleOverride, alreadyGraded) {
+// Which exercise types count as production for the mastery cap. Dictation and
+// recall pass an explicit flag instead, because their accent-blind "close"
+// answers count as correct without counting as production.
+const PRODUCTION_TYPES = new Set(['build', 'qa-build']);
+
+function answered(correct, ex, detail, titleOverride, alreadyGraded, productionOverride) {
   const s = session;
-  if (!alreadyGraded && ex.item) grade(ex.item.key, correct);
+  const production = productionOverride ?? PRODUCTION_TYPES.has(ex.type);
+  if (!alreadyGraded && ex.item) grade(ex.item.key, correct, production);
   if (correct) {
     s.right++;
-    s.xp += 10;
-    if (s.interview && !ex.repeat) s.firstTry++;
+    s.xp += ex.type === 'qa-recall' ? 20 : 10;
+    if (s.interview && !ex.repeat && !ex.assisted) s.firstTry++;
   } else {
     s.wrong++;
     if (state.settings.hearts && !s.interview) s.hearts--;
   }
+  if (s.interview && ex.item && (!correct || ex.assisted)) s.missed.push(ex.item.key);
   save();
 
   // Missed items come back once at the end — except in the mock interview,
@@ -988,9 +1133,10 @@ function renderResults() {
   $('#topbar-title').textContent = 'Results';
   $('#back-btn').classList.add('hidden');
 
+  const missedItems = r.interview ? [...new Set(r.missed)].map((k) => BY_KEY[k]).filter(Boolean) : [];
   const interviewLine = r.interview
-    ? `<p class="sub">${r.firstTry}/${r.total} answered on the first try. ${r.firstTry === r.total
-        ? 'You would walk out of that office smiling.' : 'Drill the misses, then run it again.'}</p>`
+    ? `<p class="sub">${r.firstTry}/${r.total} answered unaided on the first try. ${r.firstTry === r.total
+        ? 'You would walk out of that office smiling.' : 'Drill the misses below, then run it again.'}</p>`
     : '';
 
   main.innerHTML = `<div class="wrap">
@@ -1005,9 +1151,12 @@ function renderResults() {
       <div class="stat-box"><b>${acc}%</b><span>accuracy</span></div>
       <div class="stat-box"><b>${state.streak.count}</b><span>day streak</span></div>
     </div>
+    ${missedItems.length ? `<button class="btn green" id="drill-misses">🎯 Drill my ${missedItems.length} weak question${missedItems.length === 1 ? '' : 's'}</button>` : ''}
     <button class="btn primary" id="again">${r.interview ? 'Run it again' : 'Practice again'}</button>
     <button class="btn ghost" id="home">Back to topics</button>
   </div>`;
+
+  $('#drill-misses')?.addEventListener('click', () => startSession(missedItems, 'mix', 'Weak questions'));
 
   $('#again').addEventListener('click', () => {
     if (r.interview) return r.label === 'Full Mock Interview' ? startInterview(TOPICS) : startInterview([currentTopic]);

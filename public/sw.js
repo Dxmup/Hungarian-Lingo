@@ -4,7 +4,7 @@
  * Bump CACHE_VERSION on any release to retire the old files.
  */
 
-const CACHE_VERSION = 'hl-v2';
+const CACHE_VERSION = 'hl-v3';
 
 const ASSETS = [
   '.',
