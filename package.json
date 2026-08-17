@@ -1,0 +1,11 @@
+{
+  "name": "hungarian-lingo",
+  "version": "1.0.0",
+  "description": "A Duolingo-style PWA for building Hungarian vocabulary: drills, quizzes, listening, matching, and dictation",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "license": "ISC",
+  "private": true
+}
