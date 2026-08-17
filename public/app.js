@@ -117,9 +117,12 @@ function touchStreak() {
 // drill rehearses the sentence they will actually say in the interview.
 //
 // Hungarian suffixes obey vowel harmony, so a template written "___-ban" must
-// become "Clevelandben" or "1985-ben" when the filled value has front vowels.
-// harmony() classifies the value by its last vowel; digit strings classify by
-// how the year is read aloud (…öt → front, …nyolc → back, and so on).
+// become "1985-ben" when the filled year is read with front vowels. harmony()
+// classifies digit strings by how the year is read aloud (…öt → front,
+// …nyolc → back). Written-letter classification is a fallback only — foreign
+// names can be spelled back but pronounced front (Cleveland), which is why
+// every town slot uses the fixed "___ városában/városából" frame instead of
+// a bare suffix.
 
 const BACK_V = 'aáoóuú';
 const FRONT_V = 'eéiíöőüű';
@@ -147,7 +150,7 @@ function harmony(value) {
   return 'b';
 }
 
-const SUFFIX_PAIRS = { ban: 'ben', ból: 'ből', ba: 'be', nak: 'nek', val: 'vel' };
+const SUFFIX_PAIRS = { ban: 'ben', ból: 'ből', ba: 'be' };
 
 function withSuffix(value, backForm) {
   const form = harmony(value) === 'b' ? backForm : SUFFIX_PAIRS[backForm];
@@ -157,14 +160,15 @@ function withSuffix(value, backForm) {
 
 function fill(text, holder) {
   if (!text.includes('___')) return text;
-  const val = holder?.slot ? (state.profile[holder.slot] || '').trim() : '';
+  const val = holder?.slot ? (state.profile[holder.slot] || '').trim().replace(/[.,;!?]+$/, '') : '';
   if (!val) return text;
   let out = text;
   for (const back of Object.keys(SUFFIX_PAIRS)) {
     const pat = new RegExp(`___-(?:${back}|${SUFFIX_PAIRS[back]})`, 'g');
     out = out.replace(pat, withSuffix(val, back));
   }
-  return out.replaceAll('___', val);
+  out = out.replaceAll('___', val);
+  return out.charAt(0).toUpperCase() + out.slice(1);
 }
 
 function chunkText(item) { return fill(item.hu, item); }
@@ -1073,12 +1077,12 @@ function answered(correct, ex, detail, titleOverride, alreadyGraded, productionO
   if (correct) {
     s.right++;
     s.xp += ex.type === 'qa-recall' ? 20 : 10;
-    if (s.interview && !ex.repeat && !ex.assisted) s.firstTry++;
+    if (s.interview && !ex.repeat && !ex.assisted && ex.type === 'qa-recall') s.firstTry++;
   } else {
     s.wrong++;
     if (state.settings.hearts && !s.interview) s.hearts--;
   }
-  if (s.interview && ex.item && (!correct || ex.assisted)) s.missed.push(ex.item.key);
+  if (s.interview && ex.item && (!correct || ex.assisted || ex.type !== 'qa-recall')) s.missed.push(ex.item.key);
   save();
 
   // Missed items come back once at the end — except in the mock interview,
@@ -1135,7 +1139,7 @@ function renderResults() {
 
   const missedItems = r.interview ? [...new Set(r.missed)].map((k) => BY_KEY[k]).filter(Boolean) : [];
   const interviewLine = r.interview
-    ? `<p class="sub">${r.firstTry}/${r.total} answered unaided on the first try. ${r.firstTry === r.total
+    ? `<p class="sub">${r.firstTry}/${r.total} recalled unaided from memory. ${r.firstTry === r.total
         ? 'You would walk out of that office smiling.' : 'Drill the misses below, then run it again.'}</p>`
     : '';
 
