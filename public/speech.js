@@ -157,11 +157,16 @@ const stripDiacritics = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '');
 const FILLERS = new Set(['hát', 'ööö', 'öö', 'ő', 'hm', 'ja', 'izé', 'na']);
 
 function speechTokens(text) {
-  return spellNumbers(String(text).toLowerCase())
+  const words = spellNumbers(String(text).toLowerCase())
     .replace(/[.,;:!?„”"'()\-–—]/g, ' ')
     .replace(/_{2,}/g, ' ')
     .split(/\s+/)
-    .filter((t) => t && !FILLERS.has(t));
+    .filter(Boolean);
+  const kept = words.filter((t) => !FILLERS.has(t));
+  // "hát" is filler in a sentence and a word in its own right — dropping it
+  // from a drill whose whole target is "hát" would score a perfect answer
+  // zero. Strip fillers only while something survives the strip.
+  return kept.length ? kept : words;
 }
 
 // Word-level edit distance with a backtrace, so the feedback panel can show
@@ -282,8 +287,74 @@ function scoreSpeech(target, alternatives) {
     diff: best.diff,
     transcript: best.transcript,
     confidence: best.confidence,
+    // The contrast test re-judges these itself; it cannot use the numbers
+    // above, for the reasons set out over judgeContrast().
+    alternatives: (alternatives || []).filter((a) => a && a.transcript && a.transcript.trim()),
     // A pass whose only blemishes are vowel lengths is worth calling out —
     // it is the single most common way an otherwise fluent answer drifts.
     accentsOnly: verdict === 'pass' && best.diff.some((d) => d.status === 'near'),
   };
+}
+
+// ---------- contrast judging ----------
+// Everything above answers "would a Hungarian listener have understood that
+// sentence?", and is forgiving on purpose: an accent costs a quarter of a
+// word, and a character-level pass rescues compounds the recognizer split.
+//
+// The pronunciation drills ask a different question — "which of these two
+// words did you just say?" — and both of those kindnesses are fatal to it.
+// An accent IS the whole difference in kor/kór and öt/őt, so discounting it
+// makes the two words indistinguishable; and any minimal pair is by
+// definition one edit apart, so a character pass scores the wrong word at
+// ~92% and calls it a win. Hence a second, stricter comparison used nowhere
+// else: full cost for every difference, accents included.
+
+function strictSimilarity(a, b) {
+  if (!a || !b) return 0;
+  if (a === b) return 1;
+  const n = a.length;
+  const m = b.length;
+  let prev = new Float64Array(m + 1);
+  let cur = new Float64Array(m + 1);
+  for (let j = 0; j <= m; j++) prev[j] = j;
+  for (let i = 1; i <= n; i++) {
+    cur[0] = i;
+    for (let j = 1; j <= m; j++) {
+      cur[j] = Math.min(prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1), prev[j] + 1, cur[j - 1] + 1);
+    }
+    [prev, cur] = [cur, prev];
+  }
+  return Math.max(0, 1 - prev[m] / Math.max(n, m));
+}
+
+const contrastForm = (text) => speechTokens(text).join(' ');
+
+// Heard clearly enough to credit as production, and to name as the loser.
+const CONTRAST_CLEAR = 0.8;
+const CONTRAST_RIVAL = 0.7;
+// Beating the rival is not the same as having said the word: gibberish
+// resembles one member of a pair marginally more than the other, and that is
+// a miss, not a near miss.
+const CONTRAST_FLOOR = 0.5;
+
+// Both words are judged against ONE transcript — the recognizer's own best
+// guess. Scoring each word against whichever alternative flatters it would
+// answer "is the target somewhere in the five guesses", which is a question
+// the recognizer has already answered yes to whenever the learner is close.
+function judgeContrast(alternatives, target, rival) {
+  const heard = (alternatives || [])
+    .filter((a) => a && a.transcript && a.transcript.trim())
+    .slice()
+    .sort((a, b) => (b.confidence ?? 0) - (a.confidence ?? 0))[0];
+  if (!heard) return { verdict: 'silent', pct: 0, transcript: '' };
+
+  const said = contrastForm(heard.transcript);
+  const t = strictSimilarity(said, contrastForm(target));
+  const r = strictSimilarity(said, contrastForm(rival));
+  const pct = Math.round(t * 100);
+
+  if (r > t && r >= CONTRAST_RIVAL) return { verdict: 'rival', pct, transcript: said };
+  if (t >= CONTRAST_CLEAR && t > r) return { verdict: 'pass', pct, transcript: said };
+  if (t > r && t >= CONTRAST_FLOOR) return { verdict: 'close', pct, transcript: said };
+  return { verdict: 'miss', pct, transcript: said };
 }

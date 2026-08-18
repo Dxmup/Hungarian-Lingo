@@ -63,14 +63,19 @@ function entry(key) {
 // hard thing until the learner can actually produce it.
 const RECOGNITION_CAP = 3;
 
-function grade(key, correct, production) {
+// `boxLocked` records the answer without moving the item: used when one item
+// is drilled repeatedly inside a single session, where the schedule should
+// reflect the session, not each repetition of it.
+function grade(key, correct, production, boxLocked) {
   const e = entry(key);
   if (correct) {
-    const cap = production ? BOX_DAYS.length - 1 : RECOGNITION_CAP;
-    e.box = Math.min(e.box + 1, Math.max(cap, e.box));
+    if (!boxLocked) {
+      const cap = production ? BOX_DAYS.length - 1 : RECOGNITION_CAP;
+      e.box = Math.min(e.box + 1, Math.max(cap, e.box));
+    }
     e.right++;
   } else {
-    e.box = Math.max(e.box - 1, 0);
+    if (!boxLocked) e.box = Math.max(e.box - 1, 0);
     e.wrong++;
   }
   e.due = Date.now() + BOX_DAYS[e.box] * 86400000;
@@ -296,6 +301,9 @@ let view = 'learn';
 let session = null;
 let currentTopic = null;
 let currentSound = null;
+// Sound rows appear in two places — the sounds list and the Review tab — so
+// the way back has to be remembered rather than assumed.
+let soundCameFrom = null;
 
 function go(next, opts) {
   view = next;
@@ -335,10 +343,11 @@ $$('#tabbar .tab-btn').forEach((btn) => {
 
 $('#back-btn').addEventListener('click', () => {
   if (session && !confirmQuit()) return;
-  // Back retraces the way in: a drill returns to the thing being drilled, a
-  // sound to the list it was picked from.
+  // Back retraces the way in: a drill returns to the thing being drilled, and
+  // a sound to wherever it was opened from — the sounds list, or the Review
+  // tab, which is a route out of the section rather than deeper into it.
   if (session?.sound) return go('sound', { soundId: session.sound.id });
-  if (view === 'sound') return go('sounds');
+  if (view === 'sound') return go(soundCameFrom || 'sounds');
   if (view === 'sounds') return go('learn');
   go(currentTopic && view === 'session' ? 'topic' : 'learn', { topicId: currentTopic?.id });
 });
@@ -465,7 +474,10 @@ function qaRow(w) {
 
 function bindRows() {
   $$('.speak-mini').forEach((b) => b.addEventListener('click', () => speak(b.dataset.say)));
-  $$('.sound-open').forEach((b) => b.addEventListener('click', () => go('sound', { soundId: b.dataset.sound })));
+  $$('.sound-open').forEach((b) => b.addEventListener('click', () => {
+    soundCameFrom = view === 'sound' ? soundCameFrom : view;
+    go('sound', { soundId: b.dataset.sound });
+  }));
 }
 
 // ---------- Sounds (phonetics) ----------
@@ -498,7 +510,7 @@ function soundRow(s) {
   const box = state.progress[s.key]?.box || 0;
   return `<div class="word-row">
     <button class="speak-mini" data-say="${esc(s.words[0].hu)}" aria-label="Play">🔊</button>
-    <button class="sound-open" data-sound="${s.id}">
+    <button class="sound-open" data-sound="${esc(s.id)}">
       <span class="w-hu">${esc(s.name)}</span>
       <span class="w-en">/${esc(s.ipa)}/ · ${esc(s.words.slice(0, 2).map((w) => w.hu).join(', '))}</span>
     </button>
@@ -853,7 +865,12 @@ function buildQueue(pool, mode) {
     return pickItems(pool.filter((w) => w.kind === 'qa'), 9).map((w, i) => exerciseFor(w, 'qa', i));
   }
 
-  const chosen = pickItems(pool, 10);
+  // "Listening only" and "Builder only" are promises about what the session
+  // will ask for. A sound can only offer its own three drills, two of which
+  // want a microphone, so it sits out the modes it cannot honour rather than
+  // smuggling a mic exercise into a listening review.
+  const soundSafe = mode === 'mix' || mode === 'sound';
+  const chosen = pickItems(soundSafe ? pool : pool.filter((w) => w.kind !== 'sound'), 10);
   // A sound with no eligible pair and no microphone yields no exercise at all
   // rather than an empty one, so the queue can come back shorter than asked.
   const queue = chosen.map((w, i) => exerciseFor(w, mode, i)).filter(Boolean);
@@ -895,8 +912,14 @@ function startSoundSession(sound) {
   // is no honest way to pad a session out to ten with material the sound does
   // not have.
   const base = queue.length;
-  const wanted = Math.min(6, base * 2);
-  for (let i = 0; queue.length < wanted; i++) queue.push({ ...queue[i % base] });
+  const wanted = Math.min(8, base * 2);
+  // Coming round again only teaches something if the question changed, so the
+  // repeat asks for the other member of the pair.
+  for (let i = 0; queue.length < wanted; i++) {
+    const again = { ...queue[i % base] };
+    if (again.pair) again.side = again.side === 'a' ? 'b' : 'a';
+    queue.push(again);
+  }
 
   const drills = queue.slice(0, 10);
   session = {
@@ -1427,17 +1450,10 @@ function renderSoundEar(ex) {
 // "hagy" whenever the recognizer's spelling happened to be close — and would
 // never tell the learner the one thing worth knowing, which is that the
 // machine heard the other word.
-const CONTRAST_MARGIN = 0.1;
-
-function contrastVerdict(res, rival) {
-  const rivalScore = scoreSpeech(rival, [{ transcript: res.transcript }]).score;
-  const lead = res.score - rivalScore;
-  if (lead < -CONTRAST_MARGIN) return 'rival';
-  if (res.verdict === 'miss') return 'miss';
-  // A win too narrow to trust is not production evidence: the recognizer could
-  // not really separate the two, so the answer stands but the box does not.
-  return res.verdict === 'pass' && lead > CONTRAST_MARGIN ? 'pass' : 'close';
-}
+// judgeContrast() in speech.js does the deciding, and deliberately ignores the
+// sentence score micPad shows: that score forgives accents and compares
+// loosely, which is right for a sentence and blind for a minimal pair whose
+// entire difference is an accent.
 
 function renderSoundSay(ex) {
   const p = ex.pair;
@@ -1462,7 +1478,8 @@ function renderSoundSay(ex) {
   micPad($('#mic-host'), {
     target,
     onSettle: (res) => {
-      const verdict = contrastVerdict(res, rival);
+      const judged = judgeContrast(res.alternatives, target, rival);
+      const verdict = judged.verdict;
       speak(target);
       if (verdict === 'rival') {
         answered(false, ex,
@@ -1470,15 +1487,15 @@ function renderSoundSay(ex) {
           'The other word came out');
         return;
       }
-      if (verdict === 'miss') {
+      if (verdict === 'miss' || verdict === 'silent') {
         answered(false, ex, `Say it like this: <b>${esc(target)}</b> — ${esc(p[`${ex.side}En`])}.<br>${esc(ex.item.mouth)}`,
-          `Not close enough — ${res.pct}%.`);
+          verdict === 'silent' ? "Didn't catch that one." : `Not close enough — ${judged.pct}%.`);
         return;
       }
       answered(true, ex, `${esc(target)} — ${esc(p[`${ex.side}En`])}. ${esc(p.note)}`,
         verdict === 'pass'
-          ? `Clearly ${esc(target)}, not ${esc(rival)} — ${res.pct}%.`
-          : `Understood, but ${esc(rival)} was nearly as close a match — ${res.pct}%.`,
+          ? `Clearly ${esc(target)}, not ${esc(rival)} — ${judged.pct}%.`
+          : `Closer to ${esc(target)} than to ${esc(rival)}, but not cleanly — ${judged.pct}%.`,
         false, verdict === 'pass');
     },
   });
@@ -1677,7 +1694,16 @@ const XP_FOR = { 'qa-recall': 20, 'qa-speak': 20, speak: 15, 'sound-phrase': 15 
 function answered(correct, ex, detail, titleOverride, alreadyGraded, productionOverride) {
   const s = session;
   const production = productionOverride ?? PRODUCTION_TYPES.has(ex.type);
-  if (!alreadyGraded && ex.item) grade(ex.item.key, correct, production);
+  // A curriculum item gets one exercise per session and so moves one box. A
+  // sound gets eight or ten, all keyed to the same item, and would otherwise
+  // ride from box 0 to mastered in a single sitting — or crash to 0 on a bad
+  // one. The first answer of the session moves the box, exactly like every
+  // other item; the rest still count towards the accuracy record.
+  if (!alreadyGraded && ex.item) {
+    const locked = ex.item.kind === 'sound' && s.movedBoxes?.has(ex.item.key);
+    grade(ex.item.key, correct, production, locked);
+    if (ex.item.kind === 'sound') (s.movedBoxes = s.movedBoxes || new Set()).add(ex.item.key);
+  }
   if (correct) {
     s.right++;
     s.xp += XP_FOR[ex.type] || 10;
