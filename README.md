@@ -6,8 +6,9 @@ conversational Hungarian. Not the whole language — just that conversation,
 drilled until it's automatic.
 
 No build step, no framework, no backend — plain HTML/CSS/JS in `public/`, all
-progress in `localStorage`, all audio from the browser's speech synthesis. It
-installs to a phone home screen and works offline.
+progress in `localStorage`, all audio from the browser's speech synthesis and
+all speech scoring from its recognizer. It installs to a phone home screen and
+works offline.
 
 ## What it teaches
 
@@ -43,7 +44,10 @@ Rapid-language-learning techniques live in the mechanics, not a manifesto:
   rotation once an item has practice behind it
 - **Production-gated mastery** — recognition exercises (multiple choice,
   matching, flashcards) can only carry an item to Leitner box 3; boxes 4–5
-  require building, typing, or recalling the sentence
+  require building, typing, recalling, or *saying* the sentence
+- **Speech that gets checked** — the microphone drills score what you actually
+  said against the sentence you meant to say, so the one skill the interview
+  really tests stops running on the honour system
 - **The transfer task** — Mock Interview mode: all 41 questions, section
   order preserved but shuffled within sections, variant phrasings on, no
   hearts. The headline score counts only unaided recall; the tile fallback
@@ -63,6 +67,7 @@ Rapid-language-learning techniques live in the mechanics, not a manifesto:
 | **Dictation** | Hear it, type it — accent key row (á é í ó ö ő ú ü ű) |
 | **Matching** | Pair five phrases to their meanings |
 | **Q & A** | Understand the official's question, pick and build your answer |
+| **Speaking** | Say the phrase or answer out loud — scored word by word |
 | **Mock Interview** | The real thing, question by question |
 
 ## Audio
@@ -70,9 +75,43 @@ Rapid-language-learning techniques live in the mechanics, not a manifesto:
 Playback uses the Web Speech API with a `hu-HU` voice. If the device has no
 Hungarian voice installed the app says so up front — install one in the OS
 for real listening practice. Speech speed is adjustable (0.8× default;
-officials talk faster, train up over time). Two honest limits: the app never
-verifies *speech* (recall is typed; saying it aloud first is on you), and
-listening quality depends on the device's TTS voice.
+officials talk faster, train up over time). Listening quality depends on the
+device's TTS voice.
+
+## Speaking and how it is scored
+
+Speaking drills use the same Web Speech API in the other direction:
+`SpeechRecognition` with `lang="hu-HU"` transcribes what you say, and
+`public/speech.js` scores that transcript against the sentence you were
+supposed to produce.
+
+The score is a similarity, not a pass/fail string match:
+
+- digits are spelled out on both sides first, so a correctly spoken
+  "ezerkilencszáznyolcvanötben" matches a curriculum written `1985-ben`
+- word-level edit distance drives the score and the word-by-word colouring;
+  an accent-only difference costs a quarter of a wrong word, because vowel
+  length matters in Hungarian but recognizers are unreliable about it
+- a character-level pass runs alongside it, so a compound the recognizer
+  split in two ("nyugdí jas") is not punished as two wrong words
+- all five recognizer alternatives are scored and the best one wins — you
+  should not lose the point to the recognizer's spelling preference
+
+**85%+** counts as understood and earns full production credit toward Leitner
+boxes 4–5. **60–84%** counts correct but not as production — an official would
+have got there, with effort. Below that it is a miss. Every attempt can be
+retried before it is graded, and the best attempt is the one that counts.
+
+In the mock interview, any question at box 2 or higher offers **🎤 Answer out
+loud instead**, which scores the spoken answer for the same unaided credit as
+typing it from memory.
+
+Honest limits: recognition reports *words, not phonemes*, so this checks that
+a Hungarian listener would have understood your sentence — it is not a
+pronunciation coach and cannot grade your accent. Chrome and Edge transcribe
+server-side, so the speaking drills need a network connection even though the
+rest of the app works offline. Firefox has no recognizer at all; there the
+speaking mode is hidden and the rest of the app is unchanged.
 
 ## Running it
 
@@ -87,8 +126,8 @@ or any static file server: `npx http-server public`.
 `public/` is the entire app. On Vercel: import the repo, framework preset
 **Other**, output directory **`public`** — the included `vercel.json` handles
 service-worker cache headers. GitHub Pages, Netlify, or Cloudflare Pages work
-the same way. Serve over HTTPS so the service worker and install prompt are
-enabled.
+the same way. Serve over HTTPS so the service worker, the install prompt,
+and microphone access are enabled.
 
 ## Extending the curriculum
 
@@ -104,6 +143,7 @@ values. Bump `CACHE_VERSION` in `public/sw.js` when shipping changes.
 ```
 public/index.html         app shell
 public/app.js             router, session engine, exercises, SRS, harmony engine
+public/speech.js          microphone capture + spoken-answer scoring
 public/data.js            profile fields + curriculum
 public/style.css          light + dark themes
 public/sw.js              offline cache
