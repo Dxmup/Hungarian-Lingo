@@ -128,6 +128,35 @@ more outside GA. Baked-in wrong pronunciation is worse than mediocre-but-correct
 because it gets drilled. Azure, Google, and ElevenLabs have GA Hungarian neural
 voices as fallbacks; the architecture is unchanged if the vendor swaps.
 
+## Rejected: splicing native FLEURS audio into our sentences
+
+Tempting — real human Hungarian, openly licensed, already downloaded for the
+ASR baseline. It does not work, for three reasons in increasing order of how
+fundamental they are.
+
+**Coverage, measured.** FLEURS hu dev holds 1,693 distinct word forms across
+407 clips. The 41 interview questions need 152 word tokens and only 39% appear
+anywhere in the corpus; exactly one question (`Hogy van?`) is fully covered.
+Everything domain-specific is absent — `napot`, `kívánok`, `foglaljon`,
+`hívják`, `született`, `állampolgársága`, `foglalkozása`, `házastársa`, `eskü`.
+FLEURS is encyclopedic prose; this app is conversational bureaucratic register.
+A larger sample does not close that gap.
+
+**Coarticulation.** Phones are shaped by their neighbours — the `a` in `napot`
+is not the `a` in `lakik`. Cutting and reassembling yields the seamed quality
+of early concatenative synthesis. Unit-selection TTS needed hours of
+purpose-recorded, phonetically labelled single-speaker audio to sound tolerable,
+and the field left it behind for neural models regardless.
+
+**Prosody, which is specific to this app.** Hungarian yes/no questions carry a
+distinctive late rise-fall. FLEURS is declarative narration, so questions
+assembled from it would land with statement melody. The app exists to train
+recognition of a question under pressure; wrong contour teaches a pattern no
+official produces. Actively harmful rather than merely worse.
+
+Note the failure is acoustic, not grammatical. The text side is already
+correct — that was never the risk.
+
 ## On-device deficiency tracking
 
 Store attempt transcripts locally (IndexedDB) and analyze client-side. The
