@@ -502,3 +502,63 @@ input[type="range"] { width: 130px; }
   font-family: inherit;
 }
 .field input:focus { outline: none; border-color: var(--accent); }
+
+/* ---------- speaking ---------- */
+
+.mic-pad { text-align: center; padding: 10px 0 4px; }
+
+.mic-btn {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  border: 2px solid var(--line);
+  background: var(--card);
+  font-size: 40px;
+  box-shadow: 0 2px 0 var(--line);
+  transition: transform .12s, background .2s, border-color .2s;
+}
+.mic-btn:active { transform: scale(.96); }
+.mic-btn:disabled { opacity: .45; }
+.mic-btn.listening {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  animation: mic-pulse 1.3s ease-out infinite;
+}
+
+@keyframes mic-pulse {
+  0% { box-shadow: 0 0 0 0 var(--accent-soft); }
+  70% { box-shadow: 0 0 0 18px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+.mic-state { color: var(--muted); font-size: 14px; margin-top: 10px; }
+.mic-heard {
+  margin-top: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  min-height: 22px;
+  color: var(--ink);
+  opacity: .65;
+}
+
+.mic-score {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--card);
+  padding: 14px;
+  margin: 14px 0;
+}
+.mic-score.pass { border-color: var(--green); background: var(--green-soft); }
+.mic-score.miss { border-color: var(--accent); background: var(--accent-soft); }
+.mic-score-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.mic-verdict { font-weight: 800; font-size: 16px; }
+.mic-pct { font-weight: 800; font-size: 22px; }
+.mic-score .bar { margin: 10px 0; }
+.mic-diff { font-size: 18px; line-height: 1.7; }
+.mic-transcript, .mic-extra, .mic-best { font-size: 13px; color: var(--muted); margin-top: 8px; }
+
+.dw { padding: 1px 3px; border-radius: 5px; }
+.dw.ok { color: var(--ink); }
+.dw.near { background: #fde68a55; text-decoration: underline dotted; }
+.dw.wrong { background: var(--accent-soft); text-decoration: line-through; }
+.dw.missing { background: var(--accent-soft); opacity: .75; text-decoration: underline wavy; }
