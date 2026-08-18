@@ -4,7 +4,7 @@
  * Bump CACHE_VERSION on any release to retire the old files.
  */
 
-const CACHE_VERSION = 'hl-v7';
+const CACHE_VERSION = 'hl-v8';
 
 const ASSETS = [
   '.',
@@ -15,6 +15,9 @@ const ASSETS = [
   'manifest.json',
   'icon.svg',
   'icon-maskable.svg',
+  /* Small, and needed before the first clip can be found at all. The clips
+   * themselves are not precached — see below. */
+  'audio/manifest.json',
 ];
 
 self.addEventListener('install', (event) => {
@@ -39,6 +42,23 @@ self.addEventListener('fetch', (event) => {
           .then((res) => res.ok && caches.open(CACHE_VERSION).then((c) => c.put(event.request, res)))
           .catch(() => {}));
         return hit;
+      }
+      /* Audio clips are cached on first play rather than precached on install:
+       * the catalogue is ~460 KB and most learners will never touch every
+       * question, so paying for it up front on a phone is the wrong trade.
+       * Once heard, a clip is offline for good. */
+      if (/\/audio\/.*\.opus$/.test(new URL(event.request.url).pathname)) {
+        return fetch(event.request)
+          .then((res) => {
+            if (res.ok) {
+              const copy = res.clone();
+              event.waitUntil(caches.open(CACHE_VERSION).then((c) => c.put(event.request, copy)));
+            }
+            return res;
+          })
+          /* No network and never played before — the app falls back to the
+           * device voice on its own, so failing here is safe. */
+          .catch(() => Response.error());
       }
       return fetch(event.request).catch(() => caches.match('index.html'));
     }),

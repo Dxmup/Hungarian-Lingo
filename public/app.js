@@ -205,9 +205,48 @@ if ('speechSynthesis' in window) {
   speechSynthesis.addEventListener('voiceschanged', loadVoices);
 }
 
+/* Recorded audio for the interviewer's side, keyed by the Hungarian text.
+ * Generated ahead of time and checked by a Hungarian recogniser, so these are
+ * the lines the learner most needs to hear correctly. Answers are personalized
+ * from the profile at runtime and cannot be pre-rendered, so they fall through
+ * to the device voice — which is the right split anyway: you produce your
+ * answers, you only ever listen to the questions. */
+let clips = null;
+let playing = null;
+
+fetch('audio/manifest.json')
+  .then((res) => (res.ok ? res.json() : null))
+  .then((m) => { clips = (m && m.clips) || null; })
+  .catch(() => { /* offline before the manifest was ever cached — device voice covers it */ });
+
+function stopAudio() {
+  if ('speechSynthesis' in window) speechSynthesis.cancel();
+  if (playing) { playing.pause(); playing = null; }
+}
+
 function speak(text) {
+  stopAudio();
+  const clip = clips && clips[text];
+  if (clip) {
+    const audio = new Audio(`audio/${clip.file}`);
+    /* Same speed control as the synthesized path; pitch is held so slowing a
+     * voice down does not turn the vowels into something else. */
+    audio.playbackRate = state.settings.rate;
+    if ('preservesPitch' in audio) audio.preservesPitch = true;
+    playing = audio;
+    audio.play().catch(() => {
+      /* Autoplay blocked, or the browser cannot decode Ogg Opus (older
+       * Safari). Either way the device voice still works. */
+      playing = null;
+      synthesize(text);
+    });
+    return;
+  }
+  synthesize(text);
+}
+
+function synthesize(text) {
   if (!('speechSynthesis' in window)) return;
-  speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(speakable(text));
   u.lang = 'hu-HU';
   if (huVoice) u.voice = huVoice;
@@ -220,7 +259,7 @@ function voiceWarning() {
     return '<div class="note">This browser has no speech synthesis, so listening exercises have no audio. Try Chrome, Edge, or Safari.</div>';
   }
   if (!huVoice) {
-    return '<div class="note">No Hungarian voice found on this device, so playback uses your default voice and will sound off. Add a Hungarian text-to-speech voice in your system settings for accurate listening practice.</div>';
+    return '<div class="note">The interviewer\'s questions use recorded Hungarian audio, so those sound right. Your own answers fall back to this device\'s default voice, which has no Hungarian installed and will sound off — add a Hungarian text-to-speech voice in your system settings to fix that.</div>';
   }
   return '';
 }

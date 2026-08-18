@@ -5,8 +5,9 @@ A Duolingo-style progressive web app with one job: getting you through the
 conversational Hungarian. Not the whole language — just that conversation,
 drilled until it's automatic.
 
-No build step, no framework, no backend — plain HTML/CSS/JS in `public/`, all
-progress in `localStorage`, all audio from the browser's speech synthesis. It
+No framework, no backend — plain HTML/CSS/JS in `public/`, all progress in
+`localStorage`. The interviewer's questions play from pre-generated Hungarian
+audio; everything personalized falls back to the browser's speech synthesis. It
 installs to a phone home screen and works offline.
 
 ## What it teaches
@@ -67,17 +68,36 @@ Rapid-language-learning techniques live in the mechanics, not a manifesto:
 
 ## Audio
 
-Playback uses the Web Speech API with a `hu-HU` voice. If the device has no
-Hungarian voice installed the app says so up front — install one in the OS
-for real listening practice. Speech speed is adjustable (0.8× default;
-officials talk faster, train up over time). Two honest limits: the app never
-verifies *speech* (recall is typed; saying it aloud first is on you), and
-listening quality depends on the device's TTS voice.
+Two sources, and the split is deliberate.
+
+**The interviewer's questions play from recorded audio** — 48 of the 53
+question phrasings, pre-generated in Hungarian and shipped in `public/audio/`
+as Opus (~7.6 KB each, 464 KB for the lot). These are the lines that have to
+sound right, because the way you fail the interview is by not understanding
+what was asked. Every clip was checked by transcribing it back with a Hungarian
+speech recogniser and keeping only the ones that came back intact; the
+catalogue's mean word error rate is 4.3%, against 13.9% for that same
+recogniser on recordings of native speakers.
+
+**Everything else uses the Web Speech API** with a `hu-HU` voice. Your own
+answers are assembled from your profile at runtime — your town, your
+grandmother, your year — so they cannot be pre-rendered. That is the right way
+round: you *produce* your answers and only ever *listen* to the questions.
+
+Clips are cached on first play rather than downloaded up front, so the app
+stays light on a phone and each question is offline once heard. Speech speed is
+adjustable (0.8× default; officials talk faster, train up over time) and
+applies to both paths, holding pitch so a slowed voice keeps its vowels.
+
+Three honest limits: the app never verifies *speech* (recall is typed; saying
+it aloud first is on you), the personalized half still depends on the device's
+own TTS voice, and the recorded questions are synthetic — good enough to fool a
+recogniser, not yet signed off by a native speaker.
 
 ## Running it
 
 ```bash
-npm start          # zero-dependency static server on http://localhost:3000
+npm start          # static server on http://localhost:3000, node builtins only
 ```
 
 or any static file server: `npx http-server public`.
@@ -108,7 +128,29 @@ public/data.js            profile fields + curriculum
 public/style.css          light + dark themes
 public/sw.js              offline cache
 public/manifest.json
+public/audio/             generated question audio + manifest.json
 docs/interview-script.md  the 41-question mock interview (the quality bar)
-server.js                 zero-dependency dev server
+docs/roadmap.md           parked work, and why some ideas were rejected
+scripts/                  build-time only — audio generation and evaluation
+server.js                 dev server
 vercel.json               service-worker cache headers
 ```
+
+## Regenerating the audio
+
+Build-time only; the shipped app has no dependencies. Needs `.env.local` with
+`GEMINI_API_KEY` and `DEEPGRAM_API_KEY`.
+
+```bash
+node scripts/build-audio.js     # generate, verify, retry — skips what exists
+node scripts/encode-audio.js    # WAV -> Opus, verifying nothing degraded
+```
+
+Clip filenames are a SHA-1 of the Hungarian text, so editing a question
+produces a new file and stale audio can never silently attach to changed text.
+Delete a clip and rerun to replace it; `--force` regenerates everything.
+
+`scripts/roundtrip.js`, `asr-baseline.js` and `score-clips.js` are the
+evaluation harness — they measure a voice by transcribing it back and scoring
+word error rate against the source text. `asr-baseline.js` calibrates that
+number against native speech so the others mean something.

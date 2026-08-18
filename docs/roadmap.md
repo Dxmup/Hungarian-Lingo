@@ -1,5 +1,43 @@
 # Roadmap — future versions
 
+## ⏭ Unfinished — pick this up next session
+
+**Finish the audio catalogue: 5 clips short.** The free-tier Gemini TTS daily
+quota ran out mid-build on 2026-08-18. Nothing is broken and no code change is
+needed — the generator skips files that already exist, so once the quota
+resets:
+
+```bash
+node scripts/build-audio.js     # picks up only the 5 missing
+node scripts/encode-audio.js    # folds them into the Opus catalogue + manifest
+```
+
+Still unvoiced (falling back to device TTS until then, which works — they are
+just not the good audio):
+
+- `Hol dolgozik?`
+- `Hány éves?`
+- `Ön nős?`
+- `Férjnél van?`
+- `Hogyan ünnepelnek?`
+
+All five are short questions. They failed originally because of the style-
+instruction prompt bug, which is fixed — these five simply ran out of quota
+before being retried.
+
+**Then, before this goes anywhere near another learner:**
+
+- **Listen to `b780c1fee8.opus`** (`Mit szeret Magyarországban?`). It came back
+  as `Magyarországdan?` after four attempts — the only clip that never scored
+  clean. Could be the voice or could be the recogniser mishearing `b` as `d`;
+  only an ear can say.
+- **Spot-check five or six clips at random.** A low word error rate means a
+  machine recognises it, not that a Hungarian speaker would call it natural.
+  The catalogue has never been heard by a native speaker.
+- **Rotate the API keys** pasted into the working session on 2026-08-18:
+  Inworld, Deepgram, Gemini.
+
+
 Parked ideas, with the research behind them, so none of it has to be
 rediscovered. Nothing here is committed to; the current app stays a
 single-learner, on-device PWA.
