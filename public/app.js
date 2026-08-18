@@ -76,13 +76,19 @@ function grade(key, correct, production) {
   e.due = Date.now() + BOX_DAYS[e.box] * 86400000;
 }
 
+// Everything the scheduler can hand back. ALL_ITEMS stays the interview
+// curriculum alone — the topic progress bars are a percentage of it, and a
+// sound is not part of any topic — but review and the streak treat a sound
+// exactly like a chunk, so the due list is drawn from both.
+const ALL_DRILLABLE = [...ALL_ITEMS, ...SOUNDS];
+
 function dueItems() {
   const now = Date.now();
-  return ALL_ITEMS.filter((w) => state.progress[w.key] && state.progress[w.key].due <= now);
+  return ALL_DRILLABLE.filter((w) => state.progress[w.key] && state.progress[w.key].due <= now);
 }
 
 function seenItems() {
-  return ALL_ITEMS.filter((w) => state.progress[w.key]);
+  return ALL_DRILLABLE.filter((w) => state.progress[w.key]);
 }
 
 function topicItems(t) { return [...t.items, ...t.qa]; }
@@ -289,6 +295,7 @@ function askForm(item) {
 let view = 'learn';
 let session = null;
 let currentTopic = null;
+let currentSound = null;
 
 function go(next, opts) {
   view = next;
@@ -310,6 +317,8 @@ function render(opts = {}) {
   ({
     learn: renderLearn,
     topic: renderTopic,
+    sounds: renderSounds,
+    sound: renderSound,
     interview: renderInterviewTab,
     review: renderReview,
     me: renderMe,
@@ -326,6 +335,11 @@ $$('#tabbar .tab-btn').forEach((btn) => {
 
 $('#back-btn').addEventListener('click', () => {
   if (session && !confirmQuit()) return;
+  // Back retraces the way in: a drill returns to the thing being drilled, a
+  // sound to the list it was picked from.
+  if (session?.sound) return go('sound', { soundId: session.sound.id });
+  if (view === 'sound') return go('sounds');
+  if (view === 'sounds') return go('learn');
   go(currentTopic && view === 'session' ? 'topic' : 'learn', { topicId: currentTopic?.id });
 });
 
@@ -339,12 +353,23 @@ function renderLearn() {
   $('#topbar-title').textContent = 'Hungarian Lingo';
   const due = dueItems().length;
   const noProfile = profileComplete() === 0;
+  const sounds = soundStats();
   main.innerHTML = `<div class="wrap">
     <h2>Szia! 👋</h2>
     <p class="sub">Conversational Hungarian for the simplified naturalization interview — whole phrases, in your own words. Nothing you won't need in that room.</p>
     ${noProfile ? `<button class="btn primary" id="setup-profile">👤 Set up your answers first (2 min)</button>
       <p class="sub" style="margin-top:8px">The app drills <b>your</b> name, town, and family story — not a stranger's.</p>` : ''}
     ${due ? `<button class="btn ${noProfile ? '' : 'primary'}" id="quick-review">🔁 Review ${due} item${due === 1 ? '' : 's'} due now</button>` : ''}
+    <div class="section-label">Sounds</div>
+    <button class="unit-card" id="sounds-card">
+      <span class="unit-icon" style="background:${SOUND_COLOR}22">👄</span>
+      <span class="unit-body">
+        <span class="unit-title">Sounds &amp; pronunciation</span>
+        <span class="unit-sub">${SOUNDS.length} sounds · minimal pairs, ear and mic drills</span>
+        <span class="bar"><i style="width:${sounds.pct}%;background:${SOUND_COLOR}"></i></span>
+      </span>
+      <span class="unit-pct">${sounds.pct}%</span>
+    </button>
     <div class="section-label">Interview topics</div>
     ${TOPICS.map((t) => {
       const s = topicStats(t);
@@ -362,7 +387,8 @@ function renderLearn() {
 
   $('#setup-profile')?.addEventListener('click', () => go('me'));
   $('#quick-review')?.addEventListener('click', () => startSession(dueItems(), 'mix', 'Review'));
-  $$('.unit-card').forEach((c) => c.addEventListener('click', () => go('topic', { topicId: c.dataset.topic })));
+  $('#sounds-card').addEventListener('click', () => go('sounds'));
+  $$('.unit-card[data-topic]').forEach((c) => c.addEventListener('click', () => go('topic', { topicId: c.dataset.topic })));
 }
 
 // ---------- Topic detail ----------
@@ -439,6 +465,124 @@ function qaRow(w) {
 
 function bindRows() {
   $$('.speak-mini').forEach((b) => b.addEventListener('click', () => speak(b.dataset.say)));
+  $$('.sound-open').forEach((b) => b.addEventListener('click', () => go('sound', { soundId: b.dataset.sound })));
+}
+
+// ---------- Sounds (phonetics) ----------
+// The pronunciation section is its own small curriculum: sounds instead of
+// chunks, contrasts instead of sentences. It rides the same scheduler, so a
+// sound shows up in Review beside the phrases, but it lives off the Learn tab
+// rather than in the tab bar — the bar is full, and this is a phone.
+
+const SOUND_COLOR = '#2f6fed';
+
+const SOUND_GROUP_LABEL = {
+  consonant: 'Consonants',
+  vowel: 'Vowels',
+  length: 'Length — the accent marks',
+  stress: 'Stress',
+};
+
+function soundStats() {
+  let mastered = 0;
+  let sum = 0;
+  for (const s of SOUNDS) {
+    const box = state.progress[s.key]?.box || 0;
+    if (box >= MASTER_BOX) mastered++;
+    sum += Math.min(box, MASTER_BOX) / MASTER_BOX;
+  }
+  return { mastered, total: SOUNDS.length, pct: Math.round(sum / SOUNDS.length * 100) };
+}
+
+function soundRow(s) {
+  const box = state.progress[s.key]?.box || 0;
+  return `<div class="word-row">
+    <button class="speak-mini" data-say="${esc(s.words[0].hu)}" aria-label="Play">🔊</button>
+    <button class="sound-open" data-sound="${s.id}">
+      <span class="w-hu">${esc(s.name)}</span>
+      <span class="w-en">/${esc(s.ipa)}/ · ${esc(s.words.slice(0, 2).map((w) => w.hu).join(', '))}</span>
+    </button>
+    <div class="w-box">${pips(box)}</div>
+  </div>`;
+}
+
+function renderSounds() {
+  $('#topbar-title').textContent = 'Sounds';
+  const groups = [...new Set(SOUNDS.map((s) => s.group))];
+  const st = soundStats();
+  main.innerHTML = `<div class="wrap">
+    <h2>👄 Sounds &amp; pronunciation</h2>
+    <p class="sub">The sounds an English mouth gets wrong, on the words you will actually say. An official forgives a fumbled ending; a merged vowel gives them a word they cannot place at all.</p>
+    <div class="bar" style="margin-bottom:18px"><i style="width:${st.pct}%;background:${SOUND_COLOR}"></i></div>
+    ${voiceWarning()}
+    ${micWarning()}
+    ${groups.map((g) => `<div class="section-label">${esc(SOUND_GROUP_LABEL[g] || g)}</div>
+      ${SOUNDS.filter((s) => s.group === g).map(soundRow).join('')}`).join('')}
+  </div>`;
+  bindRows();
+}
+
+function pairRow(p) {
+  return `<div class="pair-row">
+    <div class="pair-word">
+      <button class="speak-mini" data-say="${esc(p.a)}" aria-label="Play">🔊</button>
+      <div><b>${esc(p.a)}</b><span>${esc(p.aEn)}</span></div>
+    </div>
+    <div class="pair-word">
+      <button class="speak-mini" data-say="${esc(p.b)}" aria-label="Play">🔊</button>
+      <div><b>${esc(p.b)}</b><span>${esc(p.bEn)}</span></div>
+    </div>
+    <div class="pair-note">${esc(p.note)}</div>
+  </div>`;
+}
+
+function renderSound({ soundId } = {}) {
+  currentSound = SOUND_BY_ID[soundId] || currentSound || SOUNDS[0];
+  const s = currentSound;
+  const box = state.progress[s.key]?.box || 0;
+  $('#topbar-title').textContent = s.name;
+
+  main.innerHTML = `<div class="wrap">
+    <h2>${esc(s.name)}</h2>
+    <p class="sub">${esc(s.letter)} · /${esc(s.ipa)}/ · ${pips(box)}</p>
+    ${voiceWarning()}
+    ${micWarning()}
+    <div class="card sound-card">
+      <div class="sound-head">Why English speakers get it wrong</div>
+      <p>${esc(s.hard)}</p>
+      <div class="sound-head">Nearest English sound</div>
+      <p>${esc(s.english)}</p>
+      <div class="sound-head">What your mouth does</div>
+      <p>${esc(s.mouth)}</p>
+    </div>
+    <button class="btn primary" id="drill-sound">🎯 Drill this sound</button>
+    <div class="section-label">In words you will use</div>
+    ${s.words.map((w) => `<div class="word-row">
+      <button class="speak-mini" data-say="${esc(w.hu)}" aria-label="Play">🔊</button>
+      <div>
+        <div class="w-hu">${esc(w.hu)}</div>
+        <div class="w-en">${esc(w.en)}${state.settings.showSay ? ` · ${esc(w.say)}` : ''}</div>
+      </div>
+    </div>`).join('')}
+    <div class="section-label">Hear the difference</div>
+    ${s.pairs.map(pairRow).join('')}
+    <div class="section-label">In a sentence</div>
+    <div class="word-row">
+      <button class="speak-mini" data-say="${esc(s.phrase.hu)}" aria-label="Play">🔊</button>
+      <div>
+        <div class="w-hu">${esc(s.phrase.hu)}</div>
+        <div class="w-en">${esc(s.phrase.en)}</div>
+      </div>
+    </div>
+    ${s.twister ? `<div class="section-label">Tongue twister</div>
+      <div class="word-row">
+        <button class="speak-mini" data-say="${esc(s.twister)}" aria-label="Play">🔊</button>
+        <div class="w-hu">${esc(s.twister)}</div>
+      </div>` : ''}
+  </div>`;
+
+  $('#drill-sound').addEventListener('click', () => startSoundSession(s));
+  bindRows();
 }
 
 // ---------- Interview tab ----------
@@ -488,7 +632,7 @@ function renderReview() {
       : seen.length
         ? `<div class="card">Nothing due right now — nice. Come back later, or push a new topic on the Learn tab.</div>`
         : `<div class="card">Nothing practiced yet. Start a topic on the Learn tab and it shows up here.</div>`}
-    ${seen.length ? `<div class="section-label">Your items (${seen.length})</div>${sorted.map((w) => w.kind === 'qa' ? qaRow(w) : chunkRow(w)).join('')}` : ''}
+    ${seen.length ? `<div class="section-label">Your items (${seen.length})</div>${sorted.map((w) => (w.kind === 'qa' ? qaRow(w) : w.kind === 'sound' ? soundRow(w) : chunkRow(w))).join('')}` : ''}
   </div>`;
 
   $('#start-review')?.addEventListener('click', () => startSession(dueItems(), 'mix', 'Review'));
@@ -634,8 +778,45 @@ const qaTypes = () => (micAvailable()
 
 const UNSCAFFOLDED = new Set(['qa-recall', 'qa-speak']);
 
+// ----- sound drills -----
+// Pair eligibility is correctness, not taste. `drill: false` marks a homophone
+// pair — it proves a spelling point on the detail card, but no ear and no
+// recognizer can tell two identical-sounding words apart, so a drill built on
+// one is unanswerable. `minimal: false` marks a near pair: audible, so the ear
+// drill can use it, but the say drill asks which of the two words the
+// recognizer heard, and that question only means something when the words
+// differ in the one feature being trained.
+const earPairs = (s) => s.pairs.filter((p) => p.drill !== false);
+const sayPairs = (s) => s.pairs.filter((p) => p.drill !== false && p.minimal !== false);
+
+// Which of the three drills a sound can actually support. `h` has a single
+// near pair and no minimal one, so it gets ear training and its phrase and is
+// never asked to separate two words the recognizer cannot separate either.
+function soundTypes(s) {
+  const types = [];
+  if (earPairs(s).length) types.push('sound-ear');
+  if (micAvailable() && sayPairs(s).length) types.push('sound-say');
+  if (micAvailable() && s.phrase) types.push('sound-phrase');
+  return types;
+}
+
+// The pair is fixed when the exercise is built, so a missed contrast comes
+// back at the end of the session as the same contrast.
+function soundExercise(s, i) {
+  const types = soundTypes(s);
+  if (!types.length) return null;
+  const type = types[i % types.length];
+  if (type === 'sound-phrase') return { type, item: s };
+  const pair = shuffle(type === 'sound-ear' ? earPairs(s) : sayPairs(s))[0];
+  return { type, item: s, pair, side: Math.random() < 0.5 ? 'a' : 'b' };
+}
+
 function exerciseFor(item, mode, i) {
   const chunks = chunkTypes();
+  // A sound has nothing to build out of tiles and nothing to type, so it
+  // ignores the session mode and runs its own three drills wherever it turns
+  // up — including inside a mixed review.
+  if (item.kind === 'sound') return soundExercise(item, i);
   if (item.kind === 'chunk') {
     if (chunks.includes(mode)) return { type: mode, item };
     return { type: chunks[i % chunks.length], item };
@@ -662,7 +843,8 @@ function buildQueue(pool, mode) {
   if (mode === 'speak') {
     // Speaking practice is worth having from the first meeting of a phrase, so
     // unlike the recall rungs it never falls back to tiles.
-    return pickItems(pool, 10).map((w) => ({ type: w.kind === 'chunk' ? 'speak' : 'qa-speak', item: w }));
+    return pickItems(pool.filter((w) => w.kind !== 'sound'), 10)
+      .map((w) => ({ type: w.kind === 'chunk' ? 'speak' : 'qa-speak', item: w }));
   }
   if (mode === 'flash') {
     return pickItems(pool.filter((w) => w.kind === 'chunk'), 10).map((w) => ({ type: 'flash', item: w }));
@@ -672,7 +854,9 @@ function buildQueue(pool, mode) {
   }
 
   const chosen = pickItems(pool, 10);
-  const queue = chosen.map((w, i) => exerciseFor(w, mode, i));
+  // A sound with no eligible pair and no microphone yields no exercise at all
+  // rather than an empty one, so the queue can come back shorter than asked.
+  const queue = chosen.map((w, i) => exerciseFor(w, mode, i)).filter(Boolean);
   if (mode === 'mix') {
     const chunks = chosen.filter((w) => w.kind === 'chunk');
     if (chunks.length >= 3) queue.push({ type: 'match', items: shuffle(chunks).slice(0, 5) });
@@ -685,6 +869,40 @@ function startSession(pool, mode, label) {
   const queue = buildQueue(pool, mode);
   if (!queue.length) { toast('Nothing to practice here'); return; }
   session = { queue, idx: 0, mode, label, right: 0, wrong: 0, xp: 0, hearts: 5, total: queue.length };
+  view = 'session';
+  render();
+}
+
+// One sound, drilled from three angles in the order the ear needs them: hear
+// the contrast, produce the contrast, then say the sound inside a sentence
+// where it has to survive running speech. Both members of every say-pair get
+// produced — a contrast is only fixed when the learner can hit either side of
+// it on demand.
+function startSoundSession(sound) {
+  const queue = shuffle(earPairs(sound)).map((pair) => ({
+    type: 'sound-ear', item: sound, pair, side: Math.random() < 0.5 ? 'a' : 'b',
+  }));
+  if (micAvailable()) {
+    for (const pair of shuffle(sayPairs(sound))) {
+      queue.push({ type: 'sound-say', item: sound, pair, side: 'a' });
+      queue.push({ type: 'sound-say', item: sound, pair, side: 'b' });
+    }
+    if (sound.phrase) queue.push({ type: 'sound-phrase', item: sound });
+  }
+  if (!queue.length) { toast('Nothing to drill for this sound on this device'); return; }
+  // A sound with one eligible pair would otherwise be a two-question session,
+  // so its contrasts come round a second time — but only a second time. There
+  // is no honest way to pad a session out to ten with material the sound does
+  // not have.
+  const base = queue.length;
+  const wanted = Math.min(6, base * 2);
+  for (let i = 0; queue.length < wanted; i++) queue.push({ ...queue[i % base] });
+
+  const drills = queue.slice(0, 10);
+  session = {
+    queue: drills, idx: 0, mode: 'sound', label: sound.name,
+    right: 0, wrong: 0, xp: 0, hearts: 5, total: drills.length, sound,
+  };
   view = 'session';
   render();
 }
@@ -745,6 +963,9 @@ function renderSession() {
     dictate: renderDictate,
     match: renderMatch,
     speak: renderSpeak,
+    'sound-ear': renderSoundEar,
+    'sound-say': renderSoundSay,
+    'sound-phrase': renderSoundPhrase,
     'qa-speak': renderQaSpeak,
     'qa-listen': renderQaListen,
     'qa-respond': renderQaRespond,
@@ -1167,6 +1388,121 @@ function renderQaSpeak(ex) {
   micPad($('#mic-host'), { target, onSettle: (res) => speechAnswered(ex, res, target, w.a.en) });
 }
 
+// ----- sound exercises -----
+
+// Discrimination first: a contrast you cannot hear is one you cannot fix.
+// Recognition only, so it caps at box 3 like every other picking drill.
+function renderSoundEar(ex) {
+  const p = ex.pair;
+  const target = p[ex.side];
+  exBox().innerHTML = `
+    <div class="prompt-card">
+      <div class="prompt-kind">Which word do you hear?</div>
+      <button class="speak-btn speak-big" id="say" aria-label="Play audio">🔊</button>
+      <div class="prompt-say">${esc(ex.item.name)}</div>
+    </div>
+    <div class="options">
+      ${['a', 'b'].map((side) => `<button class="opt sound-opt" data-side="${side}">
+        <b>${esc(p[side])}</b><span>${esc(p[`${side}En`])}</span>
+      </button>`).join('')}
+    </div>`;
+
+  $('#say').addEventListener('click', () => speak(target));
+  if (state.settings.autoplay) setTimeout(() => speak(target), 250);
+
+  $$('.opt').forEach((btn) => btn.addEventListener('click', () => {
+    const correct = btn.dataset.side === ex.side;
+    $$('.opt').forEach((b) => {
+      b.disabled = true;
+      if (b.dataset.side === ex.side) b.classList.add('right');
+      else if (b === btn) b.classList.add('wrong');
+    });
+    answered(correct, ex, `${esc(target)} — ${esc(p[`${ex.side}En`])}. ${esc(p.note)}`);
+  }));
+}
+
+// The contrast test, and the reason the section exists. The learner says one
+// member of a minimal pair; the transcript is then scored against BOTH words.
+// Scoring it against the target alone would call a clean "had" a passable
+// "hagy" whenever the recognizer's spelling happened to be close — and would
+// never tell the learner the one thing worth knowing, which is that the
+// machine heard the other word.
+const CONTRAST_MARGIN = 0.1;
+
+function contrastVerdict(res, rival) {
+  const rivalScore = scoreSpeech(rival, [{ transcript: res.transcript }]).score;
+  const lead = res.score - rivalScore;
+  if (lead < -CONTRAST_MARGIN) return 'rival';
+  if (res.verdict === 'miss') return 'miss';
+  // A win too narrow to trust is not production evidence: the recognizer could
+  // not really separate the two, so the answer stands but the box does not.
+  return res.verdict === 'pass' && lead > CONTRAST_MARGIN ? 'pass' : 'close';
+}
+
+function renderSoundSay(ex) {
+  const p = ex.pair;
+  const other = ex.side === 'a' ? 'b' : 'a';
+  const target = p[ex.side];
+  const rival = p[other];
+  exBox().innerHTML = `
+    <div class="prompt-card">
+      <div class="prompt-kind">🎤 Say this one — not the other</div>
+      <div class="prompt-word">${esc(target)}</div>
+      <div class="prompt-say">${esc(p[`${ex.side}En`])}</div>
+      <div class="contrast-rival">not <b>${esc(rival)}</b> — ${esc(p[`${other}En`])}</div>
+      <button class="speak-btn" id="say">🔊 Hear the pair</button>
+    </div>
+    <div id="mic-host"></div>`;
+
+  // Playing the model costs nothing here, unlike the speaking drills: the word
+  // is on screen either way, and what is being tested is the contrast, not
+  // whether the learner could recall the word.
+  $('#say').addEventListener('click', () => { speak(target); setTimeout(() => speak(rival), 900); });
+
+  micPad($('#mic-host'), {
+    target,
+    onSettle: (res) => {
+      const verdict = contrastVerdict(res, rival);
+      speak(target);
+      if (verdict === 'rival') {
+        answered(false, ex,
+          `You said <b>${esc(target)}</b> (${esc(p[`${ex.side}En`])}), the recognizer heard <b>${esc(rival)}</b> (${esc(p[`${other}En`])}) — that is the contrast to fix.<br>${esc(ex.item.mouth)}`,
+          'The other word came out');
+        return;
+      }
+      if (verdict === 'miss') {
+        answered(false, ex, `Say it like this: <b>${esc(target)}</b> — ${esc(p[`${ex.side}En`])}.<br>${esc(ex.item.mouth)}`,
+          `Not close enough — ${res.pct}%.`);
+        return;
+      }
+      answered(true, ex, `${esc(target)} — ${esc(p[`${ex.side}En`])}. ${esc(p.note)}`,
+        verdict === 'pass'
+          ? `Clearly ${esc(target)}, not ${esc(rival)} — ${res.pct}%.`
+          : `Understood, but ${esc(rival)} was nearly as close a match — ${res.pct}%.`,
+        false, verdict === 'pass');
+    },
+  });
+}
+
+// The sound in running speech, where it has to survive a whole sentence.
+// Same scoring path as the speaking drills.
+function renderSoundPhrase(ex) {
+  const s = ex.item;
+  const target = s.phrase.hu;
+  exBox().innerHTML = `
+    <div class="prompt-card">
+      <div class="prompt-kind">🎤 Say the whole sentence</div>
+      <div class="prompt-word" style="font-size:24px">${esc(target)}</div>
+      <div class="prompt-say">${esc(s.phrase.en)}</div>
+      <button class="speak-btn" id="say">🔊 Hear it</button>
+    </div>
+    <p class="sub" style="text-align:center">Watch the ${esc(s.letter)}: ${esc(s.mouth)}</p>
+    <div id="mic-host"></div>`;
+
+  $('#say').addEventListener('click', () => speak(target));
+  micPad($('#mic-host'), { target, onSettle: (res) => speechAnswered(ex, res, target, s.phrase.en) });
+}
+
 // ----- interview-question exercises -----
 
 function renderQaListen(ex) {
@@ -1336,7 +1672,7 @@ const PRODUCTION_TYPES = new Set(['build', 'qa-build']);
 
 // Producing a whole sentence from nothing is worth more than recognising one;
 // doing it out loud is worth the same as doing it from memory in writing.
-const XP_FOR = { 'qa-recall': 20, 'qa-speak': 20, speak: 15 };
+const XP_FOR = { 'qa-recall': 20, 'qa-speak': 20, speak: 15, 'sound-phrase': 15 };
 
 function answered(correct, ex, detail, titleOverride, alreadyGraded, productionOverride) {
   const s = session;
@@ -1431,6 +1767,7 @@ function renderResults() {
   $('#drill-misses')?.addEventListener('click', () => startSession(missedItems, 'mix', 'Weak questions'));
 
   $('#again').addEventListener('click', () => {
+    if (r.sound) return startSoundSession(r.sound);
     if (r.interview) return r.label === 'Full Mock Interview' ? startInterview(TOPICS) : startInterview([currentTopic]);
     const pool = r.label === 'Review' ? (dueItems().length ? dueItems() : seenItems()) : topicItems(currentTopic || TOPICS[0]);
     startSession(pool, r.mode, r.label);

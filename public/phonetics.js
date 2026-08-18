@@ -461,3 +461,17 @@ const SOUNDS = [
     phrase: { hu: 'Viszontlátásra!', en: 'Goodbye! (formal)' },
   },
 ];
+
+// ---------- flattening ----------
+// Progress keys come from the `id`, never from the array position, so a sound
+// can be inserted or moved without wiping anyone's boxes. A sound carries the
+// same shape as a curriculum item — kind and key — because it goes through the
+// same scheduler and the same session engine.
+
+const SOUND_BY_ID = {};
+
+for (const s of SOUNDS) {
+  s.kind = 'sound';
+  s.key = `snd:${s.id}`;
+  SOUND_BY_ID[s.id] = s;
+}
