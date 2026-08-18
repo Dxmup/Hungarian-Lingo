@@ -1,0 +1,17 @@
+{
+  "name": "Hungarian Lingo",
+  "short_name": "Magyar",
+  "description": "Build Hungarian vocabulary with drills, quizzes, listening, matching, and dictation.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f7f4ef",
+  "theme_color": "#f7f4ef",
+  "categories": ["education"],
+  "lang": "en",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icon-maskable.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}
