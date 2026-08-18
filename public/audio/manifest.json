@@ -1,0 +1,350 @@
+{
+  "format": {
+    "codec": "opus",
+    "container": "ogg",
+    "bitrateKbps": 32,
+    "channels": 1
+  },
+  "coverage": {
+    "generated": 48,
+    "total": 53
+  },
+  "clips": {
+    "Az eskü szövegét ismeri?": {
+      "file": "927a22c1ab.opus",
+      "kind": "question",
+      "topic": "tulel",
+      "script": "7.3",
+      "wer": 0.25
+    },
+    "Beszél a családja magyarul?": {
+      "file": "0e43b38ba5.opus",
+      "kind": "question",
+      "topic": "csalad",
+      "script": "3.7",
+      "wer": 0
+    },
+    "Beszél magyarul?": {
+      "file": "9f236a7914.opus",
+      "kind": "question",
+      "topic": "tulel",
+      "script": "1.3",
+      "wer": 0
+    },
+    "Beszéltek otthon magyarul?": {
+      "file": "bb574cf105.opus",
+      "kind": "question",
+      "topic": "szarmazas",
+      "script": "4.5",
+      "wer": 0
+    },
+    "Élnek a szülei? Hol élnek?": {
+      "file": "a851f420b2.opus",
+      "kind": "question",
+      "topic": "csalad",
+      "script": "3.5",
+      "wer": 0
+    },
+    "Érti, amit mondok?": {
+      "file": "aa69cbc2cd.opus",
+      "kind": "question",
+      "topic": "tulel",
+      "script": "1.4",
+      "wer": 0
+    },
+    "Hány gyereke van?": {
+      "file": "46edfe3492.opus",
+      "kind": "variant",
+      "topic": "csalad",
+      "script": "3.3",
+      "wer": 0
+    },
+    "Hogy hívják a gyerekeit? Hány évesek?": {
+      "file": "29e9e9c7d4.opus",
+      "kind": "question",
+      "topic": "csalad",
+      "script": "3.4",
+      "wer": 0
+    },
+    "Hogy hívják?": {
+      "file": "37e2e25fdd.opus",
+      "kind": "question",
+      "topic": "adatok",
+      "script": "2.1",
+      "wer": 0
+    },
+    "Hogy hívták a nagymamáját?": {
+      "file": "e33c63bcae.opus",
+      "kind": "question",
+      "topic": "szarmazas",
+      "script": "4.2",
+      "wer": 0.25
+    },
+    "Hogy hívták a nagypapáját?": {
+      "file": "e08f0ed644.opus",
+      "kind": "variant",
+      "topic": "szarmazas",
+      "script": "4.2",
+      "wer": 0
+    },
+    "Hogy van?": {
+      "file": "ece37ed511.opus",
+      "kind": "question",
+      "topic": "tulel",
+      "script": "1.2",
+      "wer": 0
+    },
+    "Hogyan tanult magyarul?": {
+      "file": "a62362cf21.opus",
+      "kind": "question",
+      "topic": "mindennapok",
+      "script": "5.5",
+      "wer": 0
+    },
+    "Hol járt Magyarországon?": {
+      "file": "5a639c87b1.opus",
+      "kind": "variant",
+      "topic": "magyarorszag",
+      "script": "6.2",
+      "wer": 0
+    },
+    "Hol lakik?": {
+      "file": "312b04d571.opus",
+      "kind": "question",
+      "topic": "adatok",
+      "script": "2.4",
+      "wer": 0
+    },
+    "Hol született a nagymamája?": {
+      "file": "18414a8e5e.opus",
+      "kind": "question",
+      "topic": "szarmazas",
+      "script": "4.3",
+      "wer": 0.25
+    },
+    "Hol született?": {
+      "file": "9cd34082de.opus",
+      "kind": "question",
+      "topic": "adatok",
+      "script": "2.3",
+      "wer": 0
+    },
+    "Járt már Magyarországon?": {
+      "file": "95a979d7a0.opus",
+      "kind": "question",
+      "topic": "magyarorszag",
+      "script": "6.2",
+      "wer": 0
+    },
+    "Jó napot kívánok! Foglaljon helyet!": {
+      "file": "b798486b8e.opus",
+      "kind": "question",
+      "topic": "tulel",
+      "script": "1.1",
+      "wer": 0
+    },
+    "Kérem az iratait.": {
+      "file": "2f5fe78708.opus",
+      "kind": "question",
+      "topic": "tulel",
+      "script": "1.5",
+      "wer": 0
+    },
+    "Ki volt a magyar felmenője?": {
+      "file": "9ce27ee805.opus",
+      "kind": "question",
+      "topic": "szarmazas",
+      "script": "4.1",
+      "wer": 0
+    },
+    "Köszönöm, végeztünk. Minden jót kívánok!": {
+      "file": "1774c50183.opus",
+      "kind": "question",
+      "topic": "tulel",
+      "script": "7.2",
+      "wer": 0
+    },
+    "Melyik városban?": {
+      "file": "4f9af83277.opus",
+      "kind": "variant",
+      "topic": "szarmazas",
+      "script": "4.3",
+      "wer": 0
+    },
+    "Meséljen egy kicsit magáról!": {
+      "file": "2075a81627.opus",
+      "kind": "question",
+      "topic": "mindennapok",
+      "script": "5.1",
+      "wer": 0.25
+    },
+    "Mi a családi állapota?": {
+      "file": "aedfffe1cd.opus",
+      "kind": "question",
+      "topic": "csalad",
+      "script": "3.1",
+      "wer": 0.25
+    },
+    "Mi a foglalkozása?": {
+      "file": "626239d1e1.opus",
+      "kind": "question",
+      "topic": "adatok",
+      "script": "2.6",
+      "wer": 0
+    },
+    "Mi a házastársa neve?": {
+      "file": "d7ae7137ce.opus",
+      "kind": "question",
+      "topic": "csalad",
+      "script": "3.2",
+      "wer": 0
+    },
+    "Mi a hobbija?": {
+      "file": "b21d58949c.opus",
+      "kind": "variant",
+      "topic": "mindennapok",
+      "script": "5.3",
+      "wer": 0
+    },
+    "Mi a lakcíme?": {
+      "file": "34bf8b2eed.opus",
+      "kind": "variant",
+      "topic": "adatok",
+      "script": "2.4",
+      "wer": 0
+    },
+    "Mi a neve?": {
+      "file": "a9219ddf52.opus",
+      "kind": "variant",
+      "topic": "adatok",
+      "script": "2.1",
+      "wer": 0
+    },
+    "Mi az állampolgársága?": {
+      "file": "6b2f73b172.opus",
+      "kind": "question",
+      "topic": "adatok",
+      "script": "2.5",
+      "wer": 0
+    },
+    "Miért szeretne magyar állampolgár lenni?": {
+      "file": "9fd8123962.opus",
+      "kind": "question",
+      "topic": "magyarorszag",
+      "script": "6.1",
+      "wer": 0
+    },
+    "Mikor született?": {
+      "file": "0c56b21719.opus",
+      "kind": "question",
+      "topic": "adatok",
+      "script": "2.2",
+      "wer": 0
+    },
+    "Mikor vándorolt ki a családja? Miért?": {
+      "file": "3071029671.opus",
+      "kind": "question",
+      "topic": "szarmazas",
+      "script": "4.4",
+      "wer": 0
+    },
+    "Mikor vannak a magyar nemzeti ünnepek?": {
+      "file": "0187f0bc27.opus",
+      "kind": "question",
+      "topic": "magyarorszag",
+      "script": "6.7",
+      "wer": 0.167
+    },
+    "Milyen magyar hagyományokat őriz a családja?": {
+      "file": "566b089800.opus",
+      "kind": "question",
+      "topic": "magyarorszag",
+      "script": "6.6",
+      "wer": 0
+    },
+    "Milyen magyar ünnepeket ismer?": {
+      "file": "775245d44a.opus",
+      "kind": "question",
+      "topic": "magyarorszag",
+      "script": "6.5",
+      "wer": 0
+    },
+    "Milyen nyelveken beszél?": {
+      "file": "f08305efe7.opus",
+      "kind": "question",
+      "topic": "mindennapok",
+      "script": "5.4",
+      "wer": 0
+    },
+    "Mit csinál egy átlagos napon?": {
+      "file": "3db72c45b8.opus",
+      "kind": "question",
+      "topic": "mindennapok",
+      "script": "5.2",
+      "wer": 0
+    },
+    "Mit csinál szabadidejében?": {
+      "file": "2cc6b335fb.opus",
+      "kind": "question",
+      "topic": "mindennapok",
+      "script": "5.3",
+      "wer": 0
+    },
+    "Mit szeret főzni?": {
+      "file": "2f11e9be58.opus",
+      "kind": "variant",
+      "topic": "mindennapok",
+      "script": "5.6",
+      "wer": 0
+    },
+    "Mit szeret Magyarországban?": {
+      "file": "b780c1fee8.opus",
+      "kind": "question",
+      "topic": "magyarorszag",
+      "script": "6.3",
+      "wer": 0.333
+    },
+    "Mit tud a magyar felmenőiről mesélni?": {
+      "file": "c86f246c8f.opus",
+      "kind": "question",
+      "topic": "szarmazas",
+      "script": "4.6",
+      "wer": 0.167
+    },
+    "Szereti a magyar ételeket?": {
+      "file": "90829e95a5.opus",
+      "kind": "question",
+      "topic": "mindennapok",
+      "script": "5.6",
+      "wer": 0
+    },
+    "Tartja a kapcsolatot a magyarországi rokonaival?": {
+      "file": "3d79809f60.opus",
+      "kind": "question",
+      "topic": "magyarorszag",
+      "script": "6.4",
+      "wer": 0.167
+    },
+    "Van kérdése?": {
+      "file": "2d2fe1dcf9.opus",
+      "kind": "question",
+      "topic": "tulel",
+      "script": "7.1",
+      "wer": 0
+    },
+    "Vannak gyerekei?": {
+      "file": "c4e1a156de.opus",
+      "kind": "question",
+      "topic": "csalad",
+      "script": "3.3",
+      "wer": 0
+    },
+    "Vannak testvérei?": {
+      "file": "7f3936d845.opus",
+      "kind": "question",
+      "topic": "csalad",
+      "script": "3.6",
+      "wer": 0
+    }
+  }
+}
