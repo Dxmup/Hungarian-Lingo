@@ -1,0 +1,138 @@
+# Roadmap — future versions
+
+Parked ideas, with the research behind them, so none of it has to be
+rediscovered. Nothing here is committed to; the current app stays a
+single-learner, on-device PWA.
+
+## Public release
+
+The goal that motivates most of the rest: make this available to others
+pursuing simplified naturalization (*egyszerűsített honosítás*), where the
+conversational screening is the hardest part for most applicants.
+
+**Architecture: stay on-device even when public.** Users enter family names,
+addresses, ancestor details, and their reasons for seeking citizenship, then
+record themselves saying it. An app that transmits none of that has no breach
+to suffer, no GDPR controller obligations, and no per-user cost — and for an
+immigrant audience, "your answers never leave your phone" is a reason to
+install rather than a footnote. No accounts, no server-stored answers.
+
+The curriculum is already built for this: `PROFILE_FIELDS` plus `___` slots and
+the vowel-harmony engine mean every install personalizes to its own learner.
+There is no multi-tenancy to add because nothing is shared.
+
+**Prerequisites, none of them code:**
+
+- **Native-speaker review of the whole curriculum** — the 41 questions, the
+  model answers, the chunks, and any generated audio. Non-negotiable before
+  strangers drill this for a real government interview. A wrong suffix or an
+  off-register phrase becomes a mistake in someone else's mouth.
+- **Privacy policy** — required by both app stores even when nothing is
+  collected.
+- **Disclaimer** — not legal advice, not affiliated with the Hungarian
+  government, no guarantee of outcome.
+- **Scope honesty about consulate variation** — practice differs between
+  consulates and officials.
+
+**Sequencing:** ship the PWA publicly first (installs to an Android home screen
+today, no review cycle, fix bad phrases the same day), then wrap with Capacitor
+once the content has been through native review.
+
+## App store distribution
+
+- **Google Play** — straightforward. Trusted Web Activity via Bubblewrap or
+  PWABuilder, generated from the existing `manifest.json`. Needs a $25 one-time
+  Play Console account, a signing key, and a Digital Asset Links file to verify
+  domain ownership.
+- **Apple App Store** — harder. Guideline 4.2 rejects repackaged websites, so a
+  bare PWA wrapper gets bounced. Needs a real `WKWebView` shell (Capacitor) and
+  an argument that the app is substantively app-like. Genuine offline behavior
+  and real local state help the case; budget for a rejection and resubmission.
+  $99/year.
+
+**The real payoff of going native** is not distribution — it is
+`SFSpeechRecognizer` (iOS) and `SpeechRecognizer` (Android): on-device speech
+recognition, free, no API key, no proxy, no audio leaving the phone. That is
+the version of voice scoring that is genuinely device-local. Caveat: Hungarian
+language-pack availability varies by platform and device, and iOS may fall back
+to server-side recognition. Test on a real phone before building around it.
+
+## Multi-user, if it ever happens
+
+Cheap to keep the door open, so keep it open:
+
+1. Keep every read and write behind `load()` / `save()` in `app.js`. New
+   features — including voice tracking — get the same treatment rather than
+   touching storage directly.
+2. Namespace the save key by user id, defaulting to `local`. Multi-user then
+   becomes a key change, not a schema migration.
+
+The work itself is roughly a weekend on this codebase: swap the two function
+bodies for Supabase reads/writes with localStorage as an offline cache, and add
+magic-link auth (no password UI). The one real refactor is that `load()` is
+synchronous and runs at module top level, so startup has to become async —
+hydrate from cache, render, reconcile with the server.
+
+Sync conflicts are unusually tame for this data shape: per item take the
+further-along Leitner box and the later review date, take the max of XP and
+streak, last-write-wins on the profile.
+
+The barrier is not the code — it is holding other people's immigration
+interview data, plus voice recordings, for a largely EU audience.
+
+## Voice input and scoring — vendor research (Aug 2026)
+
+**No vendor sells off-the-shelf Hungarian pronunciation scoring.** Azure Speech
+pronunciation assessment covers 33 locales and Hungarian is not one of them.
+What is buyable is accurate Hungarian *transcription*, with scoring built on
+top: word match against the target, timing gaps for hesitation, per-word
+confidence as a rough articulation proxy.
+
+- **Wispr Flow — rejected.** No developer API; on Android it is a keyboard
+  overlay. Smart Formatting cannot be disabled on Android (iOS only), and
+  Backtrack strips filler words, false starts, and self-corrections — exactly
+  the hesitation signal that indicates whether someone is interview-ready.
+  Dictation ASR answers "what did they mean"; scoring needs "what sounds did
+  they make."
+- **Deepgram Nova-3 — viable.** Dedicated Hungarian monolingual model, called
+  out for holding accuracy across long agglutinative suffix chains, which
+  matters given the `-ban` / `-ben` harmony work. Returns verbatim transcript
+  with per-word confidence and timings, and has no formatting layer guessing at
+  intent. Needs an API key behind a serverless proxy, which conflicts with the
+  on-device goal — superseded by native ASR if the app goes native.
+- **Inworld — weak for capture, interesting for audio.** Its own STT model is
+  English-focused; other languages route to third-party models. Voice profiling
+  returns emotion, accent, age, and pitch, none of which is pronunciation
+  accuracy.
+
+## Generated audio catalogue
+
+Pre-generate the fixed side of the corpus at build time and ship it as static
+assets. The interviewer questions (41 plus ~12 phrasing variants) are identical
+for every learner and are the audio that actually matters — the failure mode in
+the interview is not understanding what was asked. Personalized answers cannot
+be pre-generated and stay on device TTS, which is the correct split rather than
+a compromise: you *produce* your answers, you do not listen to them.
+
+Size is a non-issue: ~4s per clip in Opus is roughly 10–15KB, so the question
+set lands under a megabyte and the whole corpus under three. Cache on first
+play rather than precaching everything.
+
+Device TTS stays as the offline fallback — try the cached clip first, fall back
+to `speechSynthesis` in the audio layer around `app.js:209`. That also rescues
+the no-Hungarian-voice-installed case the app currently just warns about.
+
+**Vendor risk:** Inworld's Hungarian is *experimental*, not GA (its 15 GA
+languages do not include it), and their docs say pronunciation and quality vary
+more outside GA. Baked-in wrong pronunciation is worse than mediocre-but-correct
+because it gets drilled. Azure, Google, and ElevenLabs have GA Hungarian neural
+voices as fallbacks; the architecture is unchanged if the vendor swaps.
+
+## On-device deficiency tracking
+
+Store attempt transcripts locally (IndexedDB) and analyze client-side. The
+Leitner boxes already track which *items* are weak; transcripts add the one
+thing per-item scheduling cannot see — sub-sentence error patterns, e.g.
+dropping a `-ban` suffix consistently regardless of which sentence it appears
+in. No server needed for this; there is one learner per install and nothing to
+aggregate across.

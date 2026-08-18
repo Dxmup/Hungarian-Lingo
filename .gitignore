@@ -1,3 +1,10 @@
 node_modules/
 .DS_Store
 .vercel
+
+# Local secrets
+.env.local
+.env
+
+# Generated audio samples (comparison only)
+samples/
