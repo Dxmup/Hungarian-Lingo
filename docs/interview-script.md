@@ -25,7 +25,7 @@ question lists common variants where they matter.
 | 1.2 | Hogy van? | How are you? |
 | 1.3 | Beszél magyarul? | Do you speak Hungarian? |
 | 1.4 | Érti, amit mondok? | Do you understand what I'm saying? |
-| 1.5 | Kérem a személyes iratait. | Your personal documents, please. |
+| 1.5 | Kérem az iratait. | Your documents, please. |
 
 The learner must also be able to say: *Elnézést, nem értem. Meg tudná ismételni?
 Kérem, mondja lassabban.* (Sorry, I don't understand. Could you repeat that?

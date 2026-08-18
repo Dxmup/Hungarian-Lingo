@@ -153,9 +153,11 @@ function harmony(value) {
 const SUFFIX_PAIRS = { ban: 'ben', ból: 'ből', ba: 'be' };
 
 function withSuffix(value, backForm) {
+  // Only digit values take the suffix (1985-ben). A text value in a year slot
+  // is an era phrase that carries its own grammar ("a háború után").
+  if (!/\d\s*$/.test(value)) return value;
   const form = harmony(value) === 'b' ? backForm : SUFFIX_PAIRS[backForm];
-  // Digits keep the hyphen (1985-ben); names take the suffix directly.
-  return /\d\s*$/.test(value) ? `${value}-${form}` : value + form;
+  return `${value}-${form}`;
 }
 
 function fill(text, holder) {
@@ -168,7 +170,8 @@ function fill(text, holder) {
     out = out.replace(pat, withSuffix(val, back));
   }
   out = out.replaceAll('___', val);
-  return out.charAt(0).toUpperCase() + out.slice(1);
+  // Every sentence start gets its capital, including slots after a full stop.
+  return out.replace(/(^|[.!?]\s+)(\p{Ll})/gu, (m, pre, c) => pre + c.toUpperCase());
 }
 
 function chunkText(item) { return fill(item.hu, item); }
