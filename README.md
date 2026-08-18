@@ -70,19 +70,20 @@ Rapid-language-learning techniques live in the mechanics, not a manifesto:
 
 Two sources, and the split is deliberate.
 
-**The interviewer's questions play from recorded audio** — 48 of the 53
-question phrasings, pre-generated in Hungarian and shipped in `public/audio/`
-as Opus (~7.6 KB each, 464 KB for the lot). These are the lines that have to
-sound right, because the way you fail the interview is by not understanding
-what was asked. Every clip was checked by transcribing it back with a Hungarian
+**Anything with fixed Hungarian plays from recorded audio** — every interviewer
+question and phrasing variant, every chunk, and the model answers that are not
+personalized. 111 utterances in all, shipped in `public/audio/` as Opus
+(~7.6 KB each). Every clip was checked by transcribing it back with a Hungarian
 speech recogniser and keeping only the ones that came back intact; the
 catalogue's mean word error rate is 4.3%, against 13.9% for that same
 recogniser on recordings of native speakers.
 
-**Everything else uses the Web Speech API** with a `hu-HU` voice. Your own
-answers are assembled from your profile at runtime — your town, your
-grandmother, your year — so they cannot be pre-rendered. That is the right way
-round: you *produce* your answers and only ever *listen* to the questions.
+**Anything with a `___` slot uses the Web Speech API** with a `hu-HU` voice —
+13 chunks and 32 model answers, assembled from your profile at runtime. Your
+town, your grandmother, your year cannot be pre-rendered, so they keep the
+device voice. That the gap falls almost entirely on the answer side is
+convenient rather than accidental: you *produce* your answers and only ever
+*listen* to the questions.
 
 Clips are cached on first play rather than downloaded up front, so the app
 stays light on a phone and each question is offline once heard. Speech speed is

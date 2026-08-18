@@ -2,28 +2,31 @@
 
 ## ⏭ Unfinished — pick this up next session
 
-**Finish the audio catalogue: 5 clips short.** The free-tier Gemini TTS daily
-quota ran out mid-build on 2026-08-18. Nothing is broken and no code change is
-needed — the generator skips files that already exist, so once the quota
-resets:
+**Finish the audio catalogue: 63 clips outstanding, 48 of 111 done.** The
+free-tier Gemini TTS daily quota ran out on 2026-08-18 and was still exhausted
+when the scope widened from questions to the whole curriculum. Nothing is
+broken and no code change is needed — the generator skips files that already
+exist, so once the quota resets:
 
 ```bash
-node scripts/build-audio.js     # picks up only the 5 missing
+node scripts/build-audio.js     # picks up only what is missing
 node scripts/encode-audio.js    # folds them into the Opus catalogue + manifest
 ```
 
-Still unvoiced (falling back to device TTS until then, which works — they are
-just not the good audio):
+Outstanding: 49 chunks, 9 model answers, and the 5 questions and variants that
+the first run never reached (`Hol dolgozik?`, `Hány éves?`, `Ön nős?`,
+`Férjnél van?`, `Hogyan ünnepelnek?`). All fall back to device TTS meanwhile,
+which works — it is just not the good audio, and the mismatch is audible when
+a session mixes the two.
 
-- `Hol dolgozik?`
-- `Hány éves?`
-- `Ön nős?`
-- `Férjnél van?`
-- `Hogyan ünnepelnek?`
+Expect roughly 0.82 MB for the finished catalogue, up from 464 KB.
 
-All five are short questions. They failed originally because of the style-
-instruction prompt bug, which is fixed — these five simply ran out of quota
-before being retried.
+**45 utterances can never be pre-rendered** — 13 chunks and 32 model answers
+carry `___` slots filled from the learner's profile at runtime, so the audio
+depends on their town, their year, their grandmother. Those keep the device
+voice permanently, short of a network TTS call that would cost the offline and
+privacy story. This is the ceiling on "record everything", and it falls almost
+entirely on the answer side, which the learner produces rather than listens to.
 
 **Then, before this goes anywhere near another learner:**
 

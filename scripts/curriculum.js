@@ -25,19 +25,32 @@ function topics() {
   return ctx.__T;
 }
 
-/* The interviewer side only: questions and their phrasing variants. Answers
- * carry ___ slots filled from the learner's profile at runtime, so they cannot
- * be pre-rendered and stay on device TTS. */
+/* Anything whose Hungarian is fixed can be pre-rendered. Anything carrying a
+ * ___ slot cannot: it is filled from the learner's profile at runtime, so the
+ * audio would differ per learner and per edit. Those keep the device voice.
+ *
+ * Questions and variants are always fixed. Chunks and model answers are mixed,
+ * because the curriculum deliberately personalizes most answers — the app
+ * drills YOUR sentences, not sample ones. That leaves roughly half the chunks
+ * and a quarter of the answers renderable.
+ *
+ * Deduplicated by text, so a survival phrase that appears both as a chunk and
+ * as an interviewer question is one clip, not two. */
+const personalized = (hu) => /_{2,}/.test(hu);
+
 function utterances() {
   const seen = new Map();
-  for (const topic of topics())
+  for (const topic of topics()) {
+    const add = (hu, kind, script) => {
+      if (hu && !personalized(hu) && !seen.has(hu)) seen.set(hu, { hu, kind, topic: topic.id, script });
+    };
+    for (const item of topic.items || []) add(item.hu, 'chunk');
     for (const qa of topic.qa || []) {
-      const add = (hu, kind) => {
-        if (hu && !seen.has(hu)) seen.set(hu, { hu, kind, topic: topic.id, script: qa.script });
-      };
-      add(qa.q.hu, 'question');
-      for (const v of qa.variants || []) add(v, 'variant');
+      add(qa.q.hu, 'question', qa.script);
+      for (const v of qa.variants || []) add(v, 'variant', qa.script);
+      if (qa.a) add(qa.a.hu, 'answer', qa.script);
     }
+  }
   return [...seen.values()];
 }
 
