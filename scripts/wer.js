@@ -5,7 +5,13 @@
  * errors worth finding.
  */
 
-const words = (s) => s.toLowerCase().replace(/[^\p{L}\p{N}\s-]/gu, '').split(/\s+/).filter(Boolean);
+/* Hyphens are stripped, not split on. Hungarian writes a suffix onto a digit
+ * with one ("1985-ben") and ASR may or may not emit it — scoring that as a
+ * wrong word punishes a clip that said the year perfectly. Splitting instead
+ * of stripping is worse still: it turns one token into two and manufactures a
+ * deletion. Everything else non-alphanumeric goes; accents stay, because
+ * vowel length is the thing under test. */
+const words = (s) => s.toLowerCase().replace(/-/g, '').replace(/[^\p{L}\p{N}\s]/gu, '').split(/\s+/).filter(Boolean);
 
 function wer(ref, hyp) {
   const r = words(ref), h = words(hyp);
