@@ -162,10 +162,12 @@ function withSuffix(value, backForm) {
 
 function fill(text, holder) {
   if (!text.includes('___')) return text;
-  const val = holder?.slot ? (state.profile[holder.slot] || '').trim().replace(/[.,;!?]+$/, '') : '';
+  const val = holder?.slot
+    ? ((state.profile[holder.slot] || '').trim() || EXAMPLE_BY_ID[holder.slot] || '').replace(/[.,;!?]+$/, '')
+    : '';
   if (!val) return text;
   let out = text;
-  for (const back of Object.keys(SUFFIX_PAIRS)) {
+  for (const back of Object.keys(SUFFIX_PAIRS).sort((a, b) => b.length - a.length)) {
     const pat = new RegExp(`___-(?:${back}|${SUFFIX_PAIRS[back]})`, 'g');
     out = out.replace(pat, withSuffix(val, back));
   }

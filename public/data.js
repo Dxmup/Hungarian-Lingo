@@ -42,8 +42,16 @@ const PROFILE_FIELDS = [
   { id: 'ancestor',  label: 'Your Hungarian ancestor (e.g. "a nagymamám")', example: 'a nagymamám' },
   { id: 'ancestorName', label: "That ancestor's full name",      example: 'Kovács Erzsébet' },
   { id: 'ancestorTown', label: "That ancestor's home town",      example: 'Debrecen' },
-  { id: 'emigYear',  label: 'When your family emigrated — a bare year (1956), or a short era phrase ("a háború után")', example: '1956' },
+  { id: 'emigStory', label: 'When and why your family emigrated, in one Hungarian sentence', example: '1956-ban vándoroltak ki, mert jobb életet kerestek' },
+  { id: 'ancestorStory', label: 'One sentence about that ancestor, in Hungarian', example: 'A nagymamám sokat mesélt Magyarországról, és magyar ételeket főzött' },
   { id: 'hungaryTrip', label: 'Have you been to Hungary? Your answer in Hungarian (e.g. "Igen, kétszer jártam Budapesten" — or "Még nem jártam Magyarországon")', example: 'Igen, kétszer jártam Budapesten' },
+  { id: 'hobbies',   label: 'Your free time, in one Hungarian sentence', example: 'Szabadidőmben szeretek olvasni és futni' },
+  { id: 'howLearn',  label: 'How you are learning Hungarian, in Hungarian', example: 'Egy alkalmazással tanulok, és mindennap gyakorlok' },
+  { id: 'food',      label: 'Hungarian food you like (or cook), in Hungarian', example: 'Igen, nagyon! Szeretem a gulyáslevest' },
+  { id: 'why',       label: 'Why you want Hungarian citizenship — THE question. One or two Hungarian sentences', example: 'Mert a családom magyar származású, és fontos nekem a magyar kultúra' },
+  { id: 'likeHu',    label: 'What you like about Hungary, in Hungarian', example: 'Szeretem Budapestet, az ételeket és az embereket' },
+  { id: 'celebrate', label: 'How you celebrate Hungarian holidays, if at all (e.g. "Ilyenkor a családdal ünnepelünk" — or "Még nem ünnepeljük őket")', example: 'Ilyenkor a családdal ünnepelünk' },
+  { id: 'traditions', label: 'Hungarian traditions your family keeps, if any (e.g. "Karácsonykor bejglit sütünk" — or "Sajnos még nem őrzünk magyar hagyományokat")', example: 'Karácsonykor bejglit sütünk' },
 ];
 
 const TOPICS = [
@@ -61,7 +69,7 @@ const TOPICS = [
       { hu: 'Meg tudná ismételni?', en: 'Could you repeat that?', say: 'meg TOOD-nah EESH-may-tel-nee' },
       { hu: 'Kérem, mondja lassabban.', en: 'Please say it more slowly.', say: 'KAY-rem, MOND-yaw LAWSH-shawb-bawn' },
       { hu: 'Egy pillanat, gondolkodom.', en: 'One moment, I’m thinking.', say: 'edy PEEL-law-nawt, GON-dol-ko-dom' },
-      { hu: 'Hogy mondják magyarul?', en: 'How do you say it in Hungarian?', say: 'hody MOND-yahk MAW-dyaw-rool' },
+      { hu: 'Ezt hogy mondják magyarul?', en: 'How do you say this in Hungarian?', say: 'ezt hody MOND-yahk MAW-dyaw-rool' },
       { hu: 'Köszönöm szépen.', en: 'Thank you very much.', say: 'KUR-sur-nurm SAY-pen' },
       { hu: 'Igen, értem.', en: 'Yes, I understand.', say: 'EE-gen, AYR-tem' },
       { hu: 'Sajnos nem tudom.', en: 'Unfortunately I don’t know.', say: 'SHAWY-nosh nem TOO-dom' },
@@ -118,7 +126,7 @@ const TOPICS = [
       { script: '2.5', q: { hu: 'Mi az állampolgársága?', en: 'What is your citizenship?', say: 'mee awz AHL-lawm-pol-gahr-shah-gaw' },
         a: { hu: '___ állampolgár vagyok.', en: 'I am a ___ citizen.', say: 'AHL-lawm-pol-gahr VAW-dyok', slot: 'country' } },
       { script: '2.6', q: { hu: 'Mi a foglalkozása?', en: 'What is your occupation?', say: 'mee aw FOG-lawl-ko-zah-shaw' }, variants: ['Hol dolgozik?'],
-        a: { hu: '___ vagyok, egy cégnél dolgozom.', en: 'I am a ___, I work at a company.', say: 'VAW-dyok, edy TSAYG-nayl DOL-go-zom', slot: 'job' } },
+        a: { hu: '___ vagyok.', en: 'I am a ___ (your occupation).', say: 'VAW-dyok', slot: 'job' } },
       { script: '2.7', q: { hu: 'Hány éves?', en: 'How old are you?', say: 'hahny AY-vesh' },
         a: { hu: '___ éves vagyok.', en: 'I am ___ years old.', say: 'AY-vesh VAW-dyok', slot: 'age' } },
     ],
@@ -133,8 +141,8 @@ const TOPICS = [
     script: ['3'],
     items: [
       { hu: 'Nős vagyok. / Férjnél vagyok.', en: 'I am married. (man / woman)', say: 'nursh VAW-dyok / FAYRY-nayl VAW-dyok' },
-      { hu: 'A feleségem neve ___.', en: 'My wife’s name is ___.', say: 'aw FEH-leh-shay-gem NEH-veh' },
-      { hu: 'A férjem neve ___.', en: 'My husband’s name is ___.', say: 'aw FAYR-yem NEH-veh' },
+      { hu: 'A feleségem neve ___.', en: 'My wife’s name is ___.', say: 'aw FEH-leh-shay-gem NEH-veh', slot: 'spouseName' },
+      { hu: 'A férjem neve ___.', en: 'My husband’s name is ___.', say: 'aw FAYR-yem NEH-veh', slot: 'spouseName' },
       { hu: 'Két gyerekem van.', en: 'I have two children.', say: 'kayt DYEH-reh-kem vawn' },
       { hu: 'egy fiam és egy lányom', en: 'a son and a daughter', say: 'edy FEE-awm aysh edy LAH-nyom' },
       { hu: 'A szüleim ___ városában élnek.', en: 'My parents live in the town of ___.', say: 'aw SEW-leh-eem ... VAH-ro-shah-bawn AYL-nek', slot: 'parentsTown' },
@@ -146,7 +154,7 @@ const TOPICS = [
       { hu: 'Nincs testvérem.', en: 'I have no siblings.', say: 'neench TESHT-vay-rem' },
     ],
     qa: [
-      { script: '3.1', q: { hu: 'Mi a családi állapota?', en: 'What is your marital status?', say: 'mee aw CHAW-lah-dee AHL-law-po-taw' }, variants: ['Nős Ön?', 'Férjnél van?'],
+      { script: '3.1', q: { hu: 'Mi a családi állapota?', en: 'What is your marital status?', say: 'mee aw CHAW-lah-dee AHL-law-po-taw' }, variants: ['Ön nős?', 'Férjnél van?'],
         a: { hu: '___ vagyok.', en: 'I am ___ (married/single — your own status).', say: 'VAW-dyok', slot: 'marital' } },
       { script: '3.2', q: { hu: 'Mi a házastársa neve?', en: 'What is your spouse’s name?', say: 'mee aw HAH-zawsh-tahr-shaw NEH-veh' },
         a: { hu: 'A házastársam neve ___.', en: 'My spouse’s name is ___.', say: 'aw HAH-zawsh-tahr-shawm NEH-veh', slot: 'spouseName' } },
@@ -190,11 +198,11 @@ const TOPICS = [
       { script: '4.3', q: { hu: 'Hol született a nagymamája?', en: 'Where was your grandmother born?', say: 'hol SEW-leh-tett aw NAWDY-maw-mah-yaw' }, variants: ['Melyik városban?'],
         a: { hu: 'A családom ___ városából származik.', en: 'My family comes from the town of ___.', say: 'VAH-ro-shah-bohl SAHR-maw-zeek', slot: 'ancestorTown' } },
       { script: '4.4', q: { hu: 'Mikor vándorolt ki a családja? Miért?', en: 'When did your family emigrate? Why?', say: 'MEE-kor VAHN-do-rolt kee aw CHAW-lahd-yaw? MEE-ayrt' },
-        a: { hu: '___-ban vándoroltak ki, mert jobb életet kerestek.', en: 'They emigrated in ___ (your year), because they were looking for a better life.', say: 'VAHN-do-rol-tawk kee', slot: 'emigYear' } },
+        a: { hu: '___.', en: 'Your own answer: when and why your family emigrated.', say: 'VAHN-do-rol-tawk kee', slot: 'emigStory' } },
       { script: '4.5', q: { hu: 'Beszéltek otthon magyarul?', en: 'Did you speak Hungarian at home?', say: 'BEH-sayl-tek OTT-hon MAW-dyaw-rool' },
         a: { hu: '___.', en: 'Your own answer: was Hungarian spoken at home growing up.', say: 'NAY-haw EE-gen', slot: 'homeHu' } },
       { script: '4.6', q: { hu: 'Mit tud a magyar felmenőiről mesélni?', en: 'What can you tell me about your Hungarian ancestors?', say: 'meet tood aw MAW-dyawr FEL-meh-nur-ee-rurl MEH-shayl-nee' },
-        a: { hu: '___ sokat mesélt Magyarországról, és magyar ételeket főzött.', en: '___ (your ancestor) told many stories about Hungary and cooked Hungarian dishes.', say: 'SHO-kawt MEH-shaylt', slot: 'ancestor' } },
+        a: { hu: '___.', en: 'Your own sentence about your Hungarian ancestor.', say: 'SHO-kawt MEH-shaylt', slot: 'ancestorStory' } },
     ],
   },
   {
@@ -223,13 +231,13 @@ const TOPICS = [
       { script: '5.2', q: { hu: 'Mit csinál egy átlagos napon?', en: 'What do you do on an average day?', say: 'meet CHEE-nahl edy AHT-law-gosh NAW-pon' },
         a: { hu: '___.', en: 'Your own answer: what your average day looks like.', say: 'REG-gel', slot: 'day' } },
       { script: '5.3', q: { hu: 'Mit csinál szabadidejében?', en: 'What do you do in your free time?', say: 'meet CHEE-nahl SAW-bawd-ee-deh-yay-ben' }, variants: ['Mi a hobbija?'],
-        a: { hu: 'Szabadidőmben szeretek olvasni, futni és főzni.', en: 'In my free time I like to read, run and cook.', say: 'SAW-bawd-ee-durm-ben SEH-reh-tek OL-vawsh-nee' } },
+        a: { hu: '___.', en: 'Your own answer: your hobbies and free time.', say: 'SAW-bawd-ee-durm-ben', slot: 'hobbies' } },
       { script: '5.4', q: { hu: 'Milyen nyelveken beszél?', en: 'What languages do you speak?', say: 'MEE-yen NYEL-veh-ken BEH-sayl' },
         a: { hu: '___ beszélek, és tanulok magyarul.', en: 'I speak ___ (your languages), and I am learning Hungarian.', say: 'BEH-say-lek', slot: 'languages' } },
       { script: '5.5', q: { hu: 'Hogyan tanult magyarul?', en: 'How did you learn Hungarian?', say: 'HO-dyawn TAW-noolt MAW-dyaw-rool' },
-        a: { hu: 'Tanárral és egy alkalmazással tanulok. Minden nap gyakorlok.', en: 'I learn with a teacher and an app. I practice every day.', say: 'TAW-nahr-rawl aysh edy AWL-kawl-maw-zahsh-shawl' } },
+        a: { hu: '___.', en: 'Your own answer: how you are learning Hungarian.', say: 'AWL-kawl-maw-zahsh-shawl', slot: 'howLearn' } },
       { script: '5.6', q: { hu: 'Szereti a magyar ételeket?', en: 'Do you like Hungarian food?', say: 'SEH-reh-tee aw MAW-dyawr AY-teh-leh-ket' }, variants: ['Mit szeret főzni?'],
-        a: { hu: 'Igen, nagyon! Szeretem a gulyáslevest, és gyakran főzök otthon.', en: 'Yes, very much! I love goulash soup, and I often cook at home.', say: 'EE-gen, NAW-dyon' } },
+        a: { hu: '___.', en: 'Your own answer: Hungarian food you like or cook.', say: 'EE-gen, NAW-dyon', slot: 'food' } },
     ],
   },
   {
@@ -254,17 +262,17 @@ const TOPICS = [
     ],
     qa: [
       { script: '6.1', q: { hu: 'Miért szeretne magyar állampolgár lenni?', en: 'Why do you want to be a Hungarian citizen?', say: 'MEE-ayrt SEH-ret-neh MAW-dyawr AHL-lawm-pol-gahr LEN-nee' },
-        a: { hu: 'Mert a családom magyar származású, és fontos nekem a magyar kultúra.', en: 'Because my family is of Hungarian origin, and Hungarian culture is important to me.', say: 'mert aw CHAW-lah-dom MAW-dyawr SAHR-maw-zah-shoo' } },
+        a: { hu: '___.', en: 'Your own answer to the most important question of the interview.', say: 'mert aw CHAW-lah-dom', slot: 'why' } },
       { script: '6.2', q: { hu: 'Járt már Magyarországon?', en: 'Have you been to Hungary?', say: 'yahrt mahr MAW-dyawr-or-sah-gon' }, variants: ['Hol járt Magyarországon?'],
         a: { hu: '___.', en: 'Your own answer: whether and where you have visited Hungary.', say: 'YAHR-tawm', slot: 'hungaryTrip' } },
       { script: '6.3', q: { hu: 'Mit szeret Magyarországban?', en: 'What do you like about Hungary?', say: 'meet SEH-ret MAW-dyawr-or-sahg-bawn' },
-        a: { hu: 'Szeretem Budapestet, az ételeket és az embereket.', en: 'I love Budapest, the food and the people.', say: 'SEH-reh-tem BOO-daw-pesh-tet' } },
+        a: { hu: '___.', en: 'Your own answer: what you like about Hungary.', say: 'SEH-reh-tem', slot: 'likeHu' } },
       { script: '6.4', q: { hu: 'Tartja a kapcsolatot a magyarországi rokonaival?', en: 'Are you in touch with your relatives in Hungary?', say: 'TAWRT-yaw aw KAWP-cho-law-tot aw MAW-dyawr-or-sah-gee RO-ko-naw-ee-vawl' },
         a: { hu: '___.', en: 'Your own answer: relatives in Hungary and whether you are in touch.', say: 'RO-ko-naw-eem', slot: 'relatives' } },
       { script: '6.5', q: { hu: 'Milyen magyar ünnepeket ismer?', en: 'What Hungarian holidays do you know?', say: 'MEE-yen MAW-dyawr EWN-neh-peh-ket EESH-mer' }, variants: ['Hogyan ünnepelnek?'],
-        a: { hu: 'Ismerem március tizenötödikét és augusztus huszadikát. Ilyenkor a családdal ünnepelünk.', en: 'I know March 15 and August 20. On those days we celebrate with the family.', say: 'EESH-meh-rem MAHR-tsee-oosht' } },
+        a: { hu: 'Ismerem március tizenötödikét és augusztus huszadikát. ___.', en: 'I know March 15 and August 20. Then: how you celebrate, in your own words.', say: 'EESH-meh-rem MAHR-tsee-oosht', slot: 'celebrate' } },
       { script: '6.6', q: { hu: 'Milyen magyar hagyományokat őriz a családja?', en: 'What Hungarian traditions does your family keep?', say: 'MEE-yen MAW-dyawr HAW-dyo-mah-nyo-kawt UR-reez aw CHAW-lahd-yaw' },
-        a: { hu: 'Karácsonykor bejglit sütünk, és magyar ételeket főzünk.', en: 'At Christmas we bake bejgli, and we cook Hungarian dishes.', say: 'KAW-rah-chony-kor BEY-gleet SHEW-tewnk' } },
+        a: { hu: '___.', en: 'Your own answer: the traditions your family keeps, if any.', say: 'KAW-rah-chony-kor', slot: 'traditions' } },
       { script: '6.7', q: { hu: 'Mikor vannak a magyar nemzeti ünnepek?', en: 'When are the Hungarian national holidays?', say: 'MEE-kor VAWN-nawk aw MAW-dyawr NEM-zeh-tee EWN-neh-pek' },
         a: { hu: 'Március tizenötödikén, augusztus huszadikán és október huszonharmadikán.', en: 'On March 15, August 20 and October 23.', say: 'MAHR-tsee-oosh TEE-zen-ur-tur-dee-kayn' } },
     ],
@@ -292,3 +300,7 @@ for (const t of TOPICS) {
 }
 
 const ALL_ITEMS = [...CHUNKS, ...QAS];
+
+// Until the learner fills a profile field, its example stands in — a drill
+// should never show a literal blank.
+const EXAMPLE_BY_ID = Object.fromEntries(PROFILE_FIELDS.map((f) => [f.id, f.example]));
