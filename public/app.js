@@ -162,16 +162,20 @@ function withSuffix(value, backForm) {
 
 function fill(text, holder) {
   if (!text.includes('___')) return text;
-  const val = holder?.slot
-    ? ((state.profile[holder.slot] || '').trim() || EXAMPLE_BY_ID[holder.slot] || '').replace(/[.,;!?]+$/, '')
+  const raw = holder?.slot
+    ? ((state.profile[holder.slot] || '').trim() || EXAMPLE_BY_ID[holder.slot] || '')
     : '';
-  if (!val) return text;
+  if (!raw) return text;
+  // Suffixes must attach to a clean stem ("1985." → 1985-ben), but a plain
+  // blank keeps the value as written so a multi-sentence answer keeps its
+  // final full stop.
+  const stem = raw.replace(/[.,;!?]+$/, '');
   let out = text;
   for (const back of Object.keys(SUFFIX_PAIRS).sort((a, b) => b.length - a.length)) {
     const pat = new RegExp(`___-(?:${back}|${SUFFIX_PAIRS[back]})`, 'g');
-    out = out.replace(pat, withSuffix(val, back));
+    out = out.replace(pat, withSuffix(stem, back));
   }
-  out = out.replaceAll('___', val);
+  out = out.replaceAll('___.', /[.!?]$/.test(raw) ? raw : raw + '.').replaceAll('___', raw);
   // Every sentence start gets its capital, including slots after a full stop.
   return out.replace(/(^|[.!?]\s+)(\p{Ll})/gu, (m, pre, c) => pre + c.toUpperCase());
 }
