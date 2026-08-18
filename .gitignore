@@ -11,3 +11,10 @@ samples/
 
 # Audio build intermediates (Opus is what ships)
 public/audio/*.wav
+
+# Personalized audio: clips of the learner's own answers — their name, address,
+# birth year, their grandmother. Generated locally, never committed. This repo
+# is public and the filenames are opaque hashes, so without this rule a routine
+# `git add -A` would publish a recording of someone's family details.
+public/audio/me/
+profile.local.json

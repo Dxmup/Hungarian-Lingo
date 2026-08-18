@@ -21,12 +21,50 @@ a session mixes the two.
 
 Expect roughly 0.82 MB for the finished catalogue, up from 464 KB.
 
-**45 utterances can never be pre-rendered** — 13 chunks and 32 model answers
-carry `___` slots filled from the learner's profile at runtime, so the audio
-depends on their town, their year, their grandmother. Those keep the device
-voice permanently, short of a network TTS call that would cost the offline and
-privacy story. This is the ceiling on "record everything", and it falls almost
-entirely on the answer side, which the learner produces rather than listens to.
+**45 utterances cannot be pre-rendered for everyone** — 13 chunks and 32 model
+answers carry `___` slots filled from the learner's profile at runtime, so the
+audio depends on their town, their year, their grandmother. In the shipped app
+those keep the device voice. The gap falls almost entirely on the answer side,
+which the learner produces rather than listens to — except in Listening mode,
+where 13 chunks genuinely are meant to be heard.
+
+## Personalized audio, generated locally
+
+Once a learner has filled in their profile, their 45 slotted utterances become
+fixed strings and *can* be rendered — for them, on their machine. Worth doing:
+it closes the Listening-mode gap and makes every drill their own sentences in a
+real voice.
+
+**Design.** `fill()` and the harmony engine (`SUFFIX_PAIRS`, `withSuffix`,
+`harmony`) live in `public/app.js` and read `state.profile` directly. Extract
+them to `public/harmony.js`, loaded by `index.html` ahead of `app.js` and read
+by the scripts through the same sandbox trick already used for `data.js`, with
+the profile passed in rather than reached for. One implementation, no drift —
+duplicating the harmony rules into the build scripts would eventually produce
+audio that disagrees with the on-screen text, which is the worst possible bug
+here because the learner would trust the voice.
+
+Profile values come from a gitignored `profile.local.json`; output goes to
+`public/audio/me/`, also gitignored.
+
+**Two things to decide before running it, not after:**
+
+- **It sends personal data to Google.** Today nothing about the learner leaves
+  their device — that is the app's strongest privacy claim and the reason the
+  on-device architecture was chosen. Generating this audio means transmitting
+  their name, address, birth year and family details to a TTS API. Defensible
+  for one person deciding for themselves; not something to switch on for anyone
+  else by default.
+- **These clips can never be committed.** This repo is public and the filenames
+  are opaque hashes, so a routine `git add -A` would publish a recording of
+  someone's family details with nothing in the diff to catch the eye. Hence the
+  separate directory and the `.gitignore` rules — the guard exists before the
+  capability does, deliberately.
+
+**Editing the profile invalidates clips.** Content-addressed naming handles it
+correctly — new text, new hash, so stale audio can never attach to a changed
+answer — but the orphans accumulate. A prune step should drop any file in
+`public/audio/me/` that the current profile no longer maps to.
 
 **Then, before this goes anywhere near another learner:**
 
