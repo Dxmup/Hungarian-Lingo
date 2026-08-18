@@ -1,49 +1,78 @@
 # Hungarian Lingo 🇭🇺
 
-A Duolingo-style progressive web app for one job: building **Hungarian vocabulary**.
-120 core words across 10 units, practiced six different ways, with spaced
-repetition tracking every word.
+A Duolingo-style progressive web app with one job: getting you through the
+**simplified naturalization interview** (*egyszerűsített honosítás*) in
+conversational Hungarian. Not the whole language — just that conversation,
+drilled until it's automatic.
 
 No build step, no framework, no backend — plain HTML/CSS/JS in `public/`, all
 progress in `localStorage`, all audio from the browser's speech synthesis. It
 installs to a phone home screen and works offline.
 
-## Practice modes
+## What it teaches
+
+6 interview topics · 60 whole-sentence chunks · 41 interviewer
+question→answer pairs, each pinned to a line of the mock interview script in
+[`docs/interview-script.md`](docs/interview-script.md):
+
+1. **Survival Kit** — "Meg tudná ismételni?", "Kérem, mondja lassabban" — the
+   phrases that keep the interview alive when you get lost
+2. **About Me** — name, birth, address, citizenship, work
+3. **My Family** — spouse, children, parents, siblings
+4. **My Hungarian Roots** — the ancestor, the town, the emigration story
+5. **My Everyday Life** — routine, hobbies, languages, food
+6. **Hungary & Me** — why citizenship, visits, holidays, traditions
+
+Interviewer questions use formal (Ön) register and carry the real phrasing
+variants ("Hogy hívják?" / "Mi a neve?"), so you're robust to how a
+particular official words things.
+
+## The learning method
+
+Rapid-language-learning techniques live in the mechanics, not a manifesto:
+
+- **Chunking** — nothing is drilled below sentence level; tiles, dictation
+  and recall all operate on whole utterances you could actually say
+- **Directness (Ultralearning)** — the "My Answers" profile (29 fields)
+  fills slots so every drill rehearses *your* sentences: your name, your
+  town, your grandmother, your reason for applying. A vowel-harmony engine
+  keeps the personalized Hungarian grammatical (1985**-ben**, 2003**-ban**,
+  `___ városában` frames for towns)
+- **Fading scaffolds** — the question ladder ends in unscaffolded recall:
+  hear the question, produce the answer from nothing (double XP). It enters
+  rotation once an item has practice behind it
+- **Production-gated mastery** — recognition exercises (multiple choice,
+  matching, flashcards) can only carry an item to Leitner box 3; boxes 4–5
+  require building, typing, or recalling the sentence
+- **The transfer task** — Mock Interview mode: all 41 questions, section
+  order preserved but shuffled within sections, variant phrasings on, no
+  hearts. The headline score counts only unaided recall; the tile fallback
+  is there but costs the credit, and results end with a one-tap "drill my
+  weak questions" loop
+- **Spaced repetition** — Leitner scheduling (1 / 2 / 4 / 8 / 16 / 32 days)
+  across all 101 items, surfaced in the Review tab
+
+## Exercise types
 
 | Mode | What it does |
 | --- | --- |
-| **Lesson** | Mixed session: meaning both directions, listening, dictation, then a matching round |
-| **Drill** | Self-graded flashcards — tap to reveal, "I knew it" / "still learning" |
-| **Quiz** | Multiple choice, Hungarian→English and English→Hungarian |
-| **Listening** | Hear a word, pick it out of four |
-| **Matching** | Pair five Hungarian words to their meanings |
-| **Dictation** | Hear a word, type it — with an accent key row (á é í ó ö ő ú ü ű) |
-
-Distractors are drawn from the same unit first, so the wrong answers are
-plausible rather than free points.
-
-## How progress works
-
-Each word sits in a Leitner box. A correct answer moves it up a box, a miss
-moves it down, and the box sets when the word comes back: **now, 1, 2, 4, 8, 16,
-32 days**. Box 5 counts as mastered and fills the unit's progress bar. The
-Review tab collects everything that has come due across all units.
-
-Missed words are re-queued once at the end of the session. Sessions run on five
-hearts (switchable off in Settings), award 10 XP per correct answer plus a
-completion bonus, and bump the day streak.
-
-Dictation accepts an accent-blind answer as correct but says so — vowel length
-is meaningful in Hungarian (`kerek` "round" vs `kérek` "I ask for"), so the app
-grades gently but never silently.
+| **Lesson** | Chunks and questions, mixed |
+| **Chunks** | Flashcards — hear it, say it out loud, self-grade |
+| **Listening** | Hear a phrase, pick it out of four |
+| **Builder** | Assemble the sentence from word tiles (with distractors) |
+| **Dictation** | Hear it, type it — accent key row (á é í ó ö ő ú ü ű) |
+| **Matching** | Pair five phrases to their meanings |
+| **Q & A** | Understand the official's question, pick and build your answer |
+| **Mock Interview** | The real thing, question by question |
 
 ## Audio
 
 Playback uses the Web Speech API with a `hu-HU` voice. If the device has no
-Hungarian voice installed the app says so up front and falls back to the default
-voice, which will sound wrong — install a Hungarian TTS voice in the OS for real
-listening practice. Speech speed is adjustable in Settings (0.85× default,
-because Hungarian long vowels get swallowed at full speed).
+Hungarian voice installed the app says so up front — install one in the OS
+for real listening practice. Speech speed is adjustable (0.8× default;
+officials talk faster, train up over time). Two honest limits: the app never
+verifies *speech* (recall is typed; saying it aloud first is on you), and
+listening quality depends on the device's TTS voice.
 
 ## Running it
 
@@ -51,52 +80,35 @@ because Hungarian long vowels get swallowed at full speed).
 npm start          # zero-dependency static server on http://localhost:3000
 ```
 
-Anything that serves static files works just as well:
-
-```bash
-npx http-server public
-```
+or any static file server: `npx http-server public`.
 
 ## Deploying
 
-`public/` is the entire app. On Vercel, import the repo and set the output
-directory to `public` (the included `vercel.json` handles service-worker cache
-headers). GitHub Pages, Netlify, Cloudflare Pages, or an S3 bucket all work the
-same way. Serve over HTTPS so the service worker and install prompt are enabled.
+`public/` is the entire app. On Vercel: import the repo, framework preset
+**Other**, output directory **`public`** — the included `vercel.json` handles
+service-worker cache headers. GitHub Pages, Netlify, or Cloudflare Pages work
+the same way. Serve over HTTPS so the service worker and install prompt are
+enabled.
 
-## Adding vocabulary
+## Extending the curriculum
 
-`public/data.js` holds everything. A unit is:
-
-```js
-{
-  id: 'food',                    // stable — progress keys are `${id}:${index}`
-  title: 'Food & Drink',
-  hu: 'Étel és ital',
-  icon: '🍞',
-  color: '#c9a227',
-  words: [
-    { hu: 'kenyér', en: 'bread', say: 'KEN-yayr' },
-  ],
-}
-```
-
-`say` is a rough English respelling. Hungarian stress is always on the first
-syllable, so the respellings mark it in caps and use `ur` for ö/ő and `EU`/`ue`
-for ü/ű.
-
-Append words to the end of a unit rather than reordering them — indexes are part
-of the saved progress key. Bump `CACHE_VERSION` in `public/sw.js` when shipping
-changes so installed copies pick them up.
+`public/data.js` holds everything: `PROFILE_FIELDS` (the learner's answers),
+and `TOPICS` with `items` (chunks) and `qa` (question→answer pairs tagged
+with `script` line numbers). Append new material to the end of a topic —
+indexes are part of the saved progress keys. Blanks written `___` fill from
+the profile; `___-ban`-style templates get vowel-harmony suffixes for digit
+values. Bump `CACHE_VERSION` in `public/sw.js` when shipping changes.
 
 ## Files
 
 ```
-public/index.html   app shell
-public/app.js       router, session engine, exercise renderers, SRS
-public/data.js      the vocabulary
-public/style.css    light + dark theme
-public/sw.js        offline cache
+public/index.html         app shell
+public/app.js             router, session engine, exercises, SRS, harmony engine
+public/data.js            profile fields + curriculum
+public/style.css          light + dark themes
+public/sw.js              offline cache
 public/manifest.json
-server.js           local dev server
+docs/interview-script.md  the 41-question mock interview (the quality bar)
+server.js                 zero-dependency dev server
+vercel.json               service-worker cache headers
 ```
