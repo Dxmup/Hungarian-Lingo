@@ -618,3 +618,42 @@ input[type="range"] { width: 130px; }
 .dw.near { background: #fde68a55; text-decoration: underline dotted; }
 .dw.wrong { background: var(--accent-soft); text-decoration: line-through; }
 .dw.missing { background: var(--accent-soft); opacity: .75; text-decoration: underline wavy; }
+
+/* ---------- phonetics ---------- */
+
+.sound-open {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  text-align: left;
+  padding: 0;
+}
+.sound-open > span { display: block; }
+
+.sound-card p { font-size: 14px; line-height: 1.5; color: var(--muted); margin-bottom: 12px; }
+.sound-card p:last-child { margin-bottom: 0; }
+.sound-head { font-weight: 700; font-size: 14px; margin-bottom: 4px; }
+
+.pair-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-bottom: 7px;
+}
+.pair-word { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.pair-row .speak-mini { border: none; background: transparent; font-size: 18px; }
+.pair-word b { display: block; }
+.pair-word span { display: block; color: var(--muted); font-size: 13px; }
+.pair-note { grid-column: 1 / -1; color: var(--muted); font-size: 12px; }
+
+/* Two words, two glosses — big enough to tap without reading carefully. */
+.opt.sound-opt { display: block; font-size: 22px; }
+.opt.sound-opt span { display: block; font-size: 14px; font-weight: 600; color: var(--muted); margin-top: 2px; }
+
+.contrast-rival { color: var(--muted); font-size: 15px; margin-top: 10px; }
+.contrast-rival b { color: var(--ink); }

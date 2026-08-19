@@ -71,6 +71,7 @@ Rapid-language-learning techniques live in the mechanics, not a manifesto:
 | **Matching** | Pair five phrases to their meanings |
 | **Q & A** | Understand the official's question, pick and build your answer |
 | **Speaking** | Say the phrase or answer out loud — scored word by word |
+| **Sounds** | Pronunciation drills: hear a contrast, say a contrast, say it in a sentence |
 | **Mock Interview** | The real thing, question by question |
 
 ## Audio
@@ -104,6 +105,46 @@ applies to both paths, holding pitch so a slowed voice keeps its vowels.
 Two honest limits: the personalized half still depends on the device's own TTS
 voice, and the recorded questions are synthetic — good enough to fool a
 recogniser, not yet signed off by a native speaker.
+
+## Sounds — the phonetics section
+
+Twenty sounds English speakers get wrong, reachable from the Learn tab: the
+consonants English lacks (gy, ty, ny, s/sz, zs, cs, c, tapped r, clear l,
+unaspirated p/t/k), the vowels it merges (a/á, e/é, ö/ő, ü/ű), and the two
+habits that mark an accent even when every segment is right — consonant length
+and first-syllable stress. Each sound names the English habit that misfires,
+gives one physical instruction, and drills on words from the interview
+curriculum, so phonetics practice reinforces the material rather than adding a
+separate word list.
+
+Three drills per sound:
+
+- **Ear training** — hear one member of a contrast pair, pick which it was.
+  Recognition, so it caps at Leitner box 3 like the other recognition drills.
+- **The contrast test** — say one member of a pair; the transcript is scored
+  against *both* words and the verdict is which one came out. Saying `hagy`
+  when asked for `had` is not a near miss, it is the exact error the sound
+  exists to fix, and the feedback says so.
+- **In context** — say the sound inside a sentence, where it has to survive
+  running speech.
+
+The contrast test uses a stricter comparison than the sentence scorer above:
+full cost for every difference, accents included. The sentence scorer forgives
+an accent on purpose, which is right for "would an official have understood
+that?" and useless for `kor` vs `kór`, where the accent *is* the whole word.
+It also judges both candidates against a single transcript — the recognizer's
+own best guess — because scoring each word against whichever of the five
+alternatives flatters it answers a question the recognizer has already said
+yes to.
+
+Pairs carry flags for what they may be used for. Homophones (`folyt`/`fojt`,
+which exist to prove `ly` = `j`) are display-only: no ear and no recognizer can
+separate them, so no drill is built on one. Near pairs are fair for the ear but
+not for the contrast test, whose logic assumes genuine confusability.
+
+Sounds ride the same Leitner schedule as everything else and show up in the
+Review tab. A sound is drilled repeatedly within one session but moves at most
+one box per session, the same as any other item.
 
 ## Speaking and how it is scored
 
@@ -180,6 +221,7 @@ public/app.js             router, session engine, exercises, SRS
 public/data.js            curriculum + the slots it can fill
 public/harmony.js         vowel harmony, suffixes, Hungarian number words
 public/profile.js         English intake questions → composed Hungarian
+public/phonetics.js       the 20 sounds and their contrast pairs
 public/speech.js          microphone capture + spoken-answer scoring
 public/style.css          light + dark themes
 public/sw.js              offline cache
