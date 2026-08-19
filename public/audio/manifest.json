@@ -6,10 +6,46 @@
     "channels": 1
   },
   "coverage": {
-    "generated": 48,
+    "generated": 104,
     "total": 111
   },
   "clips": {
+    "A család a háború után vándorolt ki.": {
+      "file": "8633974adf.opus",
+      "kind": "chunk",
+      "topic": "szarmazas",
+      "wer": 0
+    },
+    "A gyerekeim is tanulnak magyarul.": {
+      "file": "8cb729f940.opus",
+      "kind": "chunk",
+      "topic": "csalad",
+      "wer": 0
+    },
+    "a születési anyakönyvi kivonat": {
+      "file": "6bde68e849.opus",
+      "kind": "chunk",
+      "topic": "szarmazas",
+      "wer": 0.25
+    },
+    "a születési dátumom": {
+      "file": "a94d05ba88.opus",
+      "kind": "chunk",
+      "topic": "adatok",
+      "wer": 0
+    },
+    "Angolul és magyarul beszélek.": {
+      "file": "dcecfac967.opus",
+      "kind": "chunk",
+      "topic": "mindennapok",
+      "wer": 0
+    },
+    "Augusztus huszadika Szent István ünnepe.": {
+      "file": "c06f1c58a3.opus",
+      "kind": "chunk",
+      "topic": "magyarorszag",
+      "wer": 0.2
+    },
     "Az eskü szövegét ismeri?": {
       "file": "927a22c1ab.opus",
       "kind": "question",
@@ -38,11 +74,41 @@
       "script": "4.5",
       "wer": 0
     },
+    "Büszke vagyok a magyar gyökereimre.": {
+      "file": "e29cc3a2b1.opus",
+      "kind": "chunk",
+      "topic": "szarmazas",
+      "wer": 0
+    },
+    "Egy éve tanulok magyarul.": {
+      "file": "c833f3e832.opus",
+      "kind": "chunk",
+      "topic": "mindennapok",
+      "wer": 0.25
+    },
+    "egy fiam és egy lányom": {
+      "file": "898bdef5ff.opus",
+      "kind": "chunk",
+      "topic": "csalad",
+      "wer": 0
+    },
+    "Egy pillanat, gondolkodom.": {
+      "file": "284e1a27be.opus",
+      "kind": "chunk",
+      "topic": "tulel",
+      "wer": 0
+    },
     "Élnek a szülei? Hol élnek?": {
       "file": "a851f420b2.opus",
       "kind": "question",
       "topic": "csalad",
       "script": "3.5",
+      "wer": 0
+    },
+    "Elnézést, nem értem.": {
+      "file": "0eaf9540d1.opus",
+      "kind": "chunk",
+      "topic": "tulel",
       "wer": 0
     },
     "Érti, amit mondok?": {
@@ -52,11 +118,60 @@
       "script": "1.4",
       "wer": 0
     },
+    "Este a családommal vacsorázom.": {
+      "file": "4d9de0a970.opus",
+      "kind": "chunk",
+      "topic": "mindennapok",
+      "wer": 0.25
+    },
+    "Ezt hogy mondják magyarul?": {
+      "file": "6c80cb020d.opus",
+      "kind": "chunk",
+      "topic": "tulel",
+      "wer": 0
+    },
+    "Fontos nekem a magyar kultúra.": {
+      "file": "69217beeb8.opus",
+      "kind": "chunk",
+      "topic": "magyarorszag",
+      "wer": 0
+    },
+    "Gyakran főzök otthon.": {
+      "file": "f8498de0e5.opus",
+      "kind": "chunk",
+      "topic": "mindennapok",
+      "wer": 0
+    },
+    "Gyakran telefonálunk és írunk egymásnak.": {
+      "file": "2781a0f50b.opus",
+      "kind": "chunk",
+      "topic": "magyarorszag",
+      "wer": 0
+    },
+    "Gyönyörű város a Duna partján.": {
+      "file": "e0da89f249.opus",
+      "kind": "chunk",
+      "topic": "magyarorszag",
+      "wer": 0
+    },
+    "Hány éves?": {
+      "file": "28ee7f3e9e.opus",
+      "kind": "question",
+      "topic": "adatok",
+      "script": "2.7",
+      "wer": 0
+    },
     "Hány gyereke van?": {
       "file": "46edfe3492.opus",
       "kind": "variant",
       "topic": "csalad",
       "script": "3.3",
+      "wer": 0
+    },
+    "Hétvégén kirándulunk.": {
+      "file": "ead0d40b05.opus",
+      "kind": "chunk",
+      "topic": "mindennapok",
       "wer": 0
     },
     "Hogy hívják a gyerekeit? Hány évesek?": {
@@ -101,6 +216,13 @@
       "script": "5.5",
       "wer": 0
     },
+    "Hogyan ünnepelnek?": {
+      "file": "4454312802.opus",
+      "kind": "variant",
+      "topic": "magyarorszag",
+      "script": "6.5",
+      "wer": 0
+    },
     "Hol járt Magyarországon?": {
       "file": "5a639c87b1.opus",
       "kind": "variant",
@@ -129,11 +251,44 @@
       "script": "2.3",
       "wer": 0
     },
+    "Igen, beszélek magyarul, de még tanulok.": {
+      "file": "44fca13f66.opus",
+      "kind": "answer",
+      "topic": "tulel",
+      "script": "1.3",
+      "wer": 0
+    },
+    "Igen, értem.": {
+      "file": "e85b0ed78e.opus",
+      "kind": "chunk",
+      "topic": "tulel",
+      "wer": 0
+    },
+    "Igen, értem. Ha nem értek valamit, szólok.": {
+      "file": "344ee52267.opus",
+      "kind": "answer",
+      "topic": "tulel",
+      "script": "1.4",
+      "wer": 0
+    },
+    "Igen, tudom, hogy az eskütétel az ünnepségen lesz.": {
+      "file": "98624f62e6.opus",
+      "kind": "answer",
+      "topic": "tulel",
+      "script": "7.3",
+      "wer": 0
+    },
     "Járt már Magyarországon?": {
       "file": "95a979d7a0.opus",
       "kind": "question",
       "topic": "magyarorszag",
       "script": "6.2",
+      "wer": 0
+    },
+    "Jó napot kívánok!": {
+      "file": "eefef4fadb.opus",
+      "kind": "chunk",
+      "topic": "tulel",
       "wer": 0
     },
     "Jó napot kívánok! Foglaljon helyet!": {
@@ -143,11 +298,48 @@
       "script": "1.1",
       "wer": 0
     },
+    "Jó napot kívánok! Köszönöm.": {
+      "file": "d56f04b0a4.opus",
+      "kind": "answer",
+      "topic": "tulel",
+      "script": "1.1",
+      "wer": 0
+    },
+    "jobb életet kerestek": {
+      "file": "c5af680102.opus",
+      "kind": "chunk",
+      "topic": "szarmazas",
+      "wer": 0
+    },
+    "Karácsonykor bejglit sütünk.": {
+      "file": "38b787cbfd.opus",
+      "kind": "chunk",
+      "topic": "magyarorszag",
+      "wer": 0.667
+    },
     "Kérem az iratait.": {
       "file": "2f5fe78708.opus",
       "kind": "question",
       "topic": "tulel",
       "script": "1.5",
+      "wer": 0
+    },
+    "Kérem, mondja lassabban.": {
+      "file": "0915b923c5.opus",
+      "kind": "chunk",
+      "topic": "tulel",
+      "wer": 0
+    },
+    "Két gyerekem van.": {
+      "file": "4850edf286.opus",
+      "kind": "chunk",
+      "topic": "csalad",
+      "wer": 0
+    },
+    "Kétszer jártam Budapesten.": {
+      "file": "1dec68e556.opus",
+      "kind": "chunk",
+      "topic": "magyarorszag",
       "wer": 0
     },
     "Ki volt a magyar felmenője?": {
@@ -157,6 +349,26 @@
       "script": "4.1",
       "wer": 0
     },
+    "Köszönöm szépen a türelmét. Viszontlátásra!": {
+      "file": "0e2dd90a59.opus",
+      "kind": "answer",
+      "topic": "tulel",
+      "script": "7.2",
+      "wer": 0
+    },
+    "Köszönöm szépen.": {
+      "file": "806ec888b5.opus",
+      "kind": "chunk",
+      "topic": "tulel",
+      "wer": 0
+    },
+    "Köszönöm, jól vagyok. Egy kicsit izgulok.": {
+      "file": "92d4757248.opus",
+      "kind": "answer",
+      "topic": "tulel",
+      "script": "1.2",
+      "wer": 0.167
+    },
     "Köszönöm, végeztünk. Minden jót kívánok!": {
       "file": "1774c50183.opus",
       "kind": "question",
@@ -164,11 +376,42 @@
       "script": "7.2",
       "wer": 0
     },
+    "magyar ételeket főzött": {
+      "file": "058fa73fe4.opus",
+      "kind": "chunk",
+      "topic": "szarmazas",
+      "wer": 0
+    },
+    "Március tizenötödike a forradalom ünnepe.": {
+      "file": "66f46c57de.opus",
+      "kind": "chunk",
+      "topic": "magyarorszag",
+      "wer": 0.2
+    },
+    "Március tizenötödikén, augusztus huszadikán és október huszonharmadikán.": {
+      "file": "3d265fb098.opus",
+      "kind": "answer",
+      "topic": "magyarorszag",
+      "script": "6.7",
+      "wer": 0.429
+    },
+    "Meg tudná ismételni?": {
+      "file": "8cb0f5ae01.opus",
+      "kind": "chunk",
+      "topic": "tulel",
+      "wer": 0.667
+    },
     "Melyik városban?": {
       "file": "4f9af83277.opus",
       "kind": "variant",
       "topic": "szarmazas",
       "script": "4.3",
+      "wer": 0
+    },
+    "Mert a családom magyar származású.": {
+      "file": "f3f363aca1.opus",
+      "kind": "chunk",
+      "topic": "magyarorszag",
       "wer": 0
     },
     "Meséljen egy kicsit magáról!": {
@@ -276,6 +519,12 @@
       "script": "5.4",
       "wer": 0
     },
+    "Mindennap gyakorlok egy kicsit.": {
+      "file": "cb6b79309e.opus",
+      "kind": "chunk",
+      "topic": "mindennapok",
+      "wer": 0.5
+    },
     "Mit csinál egy átlagos napon?": {
       "file": "3db72c45b8.opus",
       "kind": "question",
@@ -311,11 +560,84 @@
       "script": "4.6",
       "wer": 0.167
     },
+    "Nincs gyerekem.": {
+      "file": "7c517be552.opus",
+      "kind": "chunk",
+      "topic": "csalad",
+      "wer": 0
+    },
+    "Nincs kérdésem, köszönöm.": {
+      "file": "1390757deb.opus",
+      "kind": "answer",
+      "topic": "tulel",
+      "script": "7.1",
+      "wer": 0
+    },
+    "Nincs testvérem.": {
+      "file": "7a09898819.opus",
+      "kind": "chunk",
+      "topic": "csalad",
+      "wer": 0
+    },
+    "Nőtlen vagyok. / Hajadon vagyok.": {
+      "file": "286e842f4f.opus",
+      "kind": "chunk",
+      "topic": "csalad",
+      "wer": 0.25
+    },
+    "Október huszonharmadika az ötvenhatos forradalom ünnepe.": {
+      "file": "f931131052.opus",
+      "kind": "chunk",
+      "topic": "magyarorszag",
+      "wer": 0.333
+    },
+    "Otthon néha beszéltünk magyarul.": {
+      "file": "a5fe8eaa58.opus",
+      "kind": "chunk",
+      "topic": "szarmazas",
+      "wer": 0
+    },
+    "Reggel dolgozni megyek.": {
+      "file": "7e1ccd64b5.opus",
+      "kind": "chunk",
+      "topic": "mindennapok",
+      "wer": 0
+    },
+    "Sajnos édesanyám már nem él.": {
+      "file": "8cdca42e7d.opus",
+      "kind": "chunk",
+      "topic": "csalad",
+      "wer": 0.2
+    },
+    "Sajnos nem tudom.": {
+      "file": "b1114033ad.opus",
+      "kind": "chunk",
+      "topic": "tulel",
+      "wer": 0
+    },
+    "Szabadidőmben szeretek olvasni és futni.": {
+      "file": "b22ac9f976.opus",
+      "kind": "chunk",
+      "topic": "mindennapok",
+      "wer": 0
+    },
+    "Szeretem a gulyáslevest és a lángost.": {
+      "file": "d215e7f3f8.opus",
+      "kind": "chunk",
+      "topic": "mindennapok",
+      "wer": 0
+    },
     "Szereti a magyar ételeket?": {
       "file": "90829e95a5.opus",
       "kind": "question",
       "topic": "mindennapok",
       "script": "5.6",
+      "wer": 0
+    },
+    "tanárral és egy alkalmazással": {
+      "file": "5aa2fbbec9.opus",
+      "kind": "chunk",
+      "topic": "mindennapok",
       "wer": 0
     },
     "Tartja a kapcsolatot a magyarországi rokonaival?": {
@@ -324,6 +646,19 @@
       "topic": "magyarorszag",
       "script": "6.4",
       "wer": 0.167
+    },
+    "Tessék, itt vannak az irataim.": {
+      "file": "ffabf83a3a.opus",
+      "kind": "answer",
+      "topic": "tulel",
+      "script": "1.5",
+      "wer": 0.2
+    },
+    "Van egy bátyám és egy húgom.": {
+      "file": "a9c04685ff.opus",
+      "kind": "chunk",
+      "topic": "csalad",
+      "wer": 0
     },
     "Van kérdése?": {
       "file": "2d2fe1dcf9.opus",
@@ -339,11 +674,23 @@
       "script": "3.3",
       "wer": 0
     },
+    "Vannak rokonaim Magyarországon.": {
+      "file": "3ad0089a03.opus",
+      "kind": "chunk",
+      "topic": "magyarorszag",
+      "wer": 0
+    },
     "Vannak testvérei?": {
       "file": "7f3936d845.opus",
       "kind": "question",
       "topic": "csalad",
       "script": "3.6",
+      "wer": 0
+    },
+    "Viszontlátásra!": {
+      "file": "7fe0c1f576.opus",
+      "kind": "chunk",
+      "topic": "tulel",
       "wer": 0
     }
   }

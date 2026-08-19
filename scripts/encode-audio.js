@@ -95,24 +95,41 @@ async function transcribe(file, mime) {
     console.log('\nNo clip got worse after encoding.');
   }
 
-  /* Rewritten from scratch each run, so it always describes exactly the clips
-   * that are on disk — never a leftover entry pointing at a file that a
-   * partial build never produced. */
+  /* Rewritten from scratch each run against the Opus files actually on disk,
+   * so it never carries a leftover entry pointing at a clip that a partial
+   * build never produced.
+   *
+   * Enumerating the .opus files rather than this run's WAVs is what makes the
+   * build resumable. The WAVs are deleted once encoded, so a second run sees
+   * only the newly generated ones — listing those alone would silently drop
+   * every previously finished clip from the manifest and send the app back to
+   * device TTS for audio that is sitting right there. Clips encoded earlier
+   * keep their recorded WER from the previous manifest; re-verifying them
+   * would spend Deepgram calls to re-learn a number we already have. */
+  const encodedNow = Object.fromEntries(ok.map((r) => [r.opusName, r]));
+  const prior = fs.existsSync(manifestPath)
+    ? JSON.parse(fs.readFileSync(manifestPath, 'utf8')).clips || {}
+    : {};
+
   const clips = {};
-  for (const r of ok.sort((a, b) => a.hu.localeCompare(b.hu, 'hu'))) {
-    const u = byFile[r.wavName];
-    clips[r.hu] = {
-      file: r.opusName, kind: u.kind, topic: u.topic, script: u.script,
-      wer: Number(r.opusWer.toFixed(3)),
+  for (const u of utterances().sort((a, b) => a.hu.localeCompare(b.hu, 'hu'))) {
+    const opusName = `${key(u.hu)}.opus`;
+    if (!fs.existsSync(path.join(AUDIO, opusName))) continue;
+    const r = encodedNow[opusName];
+    const score = r ? Number(r.opusWer.toFixed(3)) : prior[u.hu]?.wer;
+    clips[u.hu] = {
+      file: opusName, kind: u.kind, topic: u.topic, script: u.script,
+      ...(score === undefined ? {} : { wer: score }),
     };
   }
   const total = utterances().length;
   fs.writeFileSync(manifestPath, JSON.stringify({
     format: { codec: 'opus', container: 'ogg', bitrateKbps: BITRATE, channels: 1 },
-    coverage: { generated: ok.length, total },
+    coverage: { generated: Object.keys(clips).length, total },
     clips,
   }, null, 2));
-  if (ok.length < total) console.log(`\nNote: ${total - ok.length} utterance(s) still have no audio — the app falls back to device TTS for those.`);
+  const missing = total - Object.keys(clips).length;
+  if (missing) console.log(`\nNote: ${missing} utterance(s) still have no audio — the app falls back to device TTS for those.`);
 
   if (!KEEP_WAV) {
     for (const r of ok) fs.unlinkSync(path.join(AUDIO, r.wavName));
