@@ -4,7 +4,7 @@
  * Bump CACHE_VERSION on any release to retire the old files.
  */
 
-const CACHE_VERSION = 'hl-v9';
+const CACHE_VERSION = 'hl-v10';
 
 const ASSETS = [
   '.',
@@ -13,6 +13,7 @@ const ASSETS = [
   'data.js',
   'harmony.js',
   'profile.js',
+  'speech.js',
   'app.js',
   'manifest.json',
   'icon.svg',

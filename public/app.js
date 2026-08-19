@@ -3,8 +3,9 @@
  *
  * Offline-first, no build step, no backend: progress and the learner's
  * profile live in localStorage, audio comes from the browser's speech
- * synthesis. The pedagogy is chunk-based — whole sentences, drilled in your
- * own words via profile slots — with Leitner spaced repetition underneath.
+ * synthesis and answers can be spoken back through its recognizer. The
+ * pedagogy is chunk-based — whole sentences, drilled in your own words via
+ * profile slots — with Leitner spaced repetition underneath.
  */
 
 const $ = (sel, el = document) => el.querySelector(sel);
@@ -28,7 +29,7 @@ const defaults = () => ({
   intake: {},                         // INTAKE id -> what the learner answered, in English
   profile: {},                        // PROFILE_FIELDS id -> Hungarian, composed from intake
   bestInterview: null,                // best full mock-interview score
-  settings: { rate: 0.8, autoplay: true, showSay: true, hearts: true },
+  settings: { rate: 0.8, autoplay: true, showSay: true, hearts: true, mic: true },
 });
 
 let state = load();
@@ -234,6 +235,19 @@ function voiceWarning() {
   return '';
 }
 
+// ---------- microphone ----------
+// Speaking drills only appear where the browser can actually hear: the
+// recognizer has to exist, and the learner has to have left the setting on.
+
+function micAvailable() {
+  return speechInputSupported() && state.settings.mic;
+}
+
+function micWarning() {
+  if (speechInputSupported()) return '';
+  return '<div class="note">This browser has no speech recognition, so the speaking drills are hidden. Chrome, Edge, and Safari can score what you say out loud.</div>';
+}
+
 // ---------- small helpers ----------
 
 const shuffle = (arr) => {
@@ -292,6 +306,9 @@ function go(next, opts) {
 }
 
 function render(opts = {}) {
+  // Leaving a screen must close the microphone — a recognizer left running
+  // keeps the browser's recording indicator on.
+  stopMic();
   const tabs = ['learn', 'interview', 'review', 'me'];
   $('#back-btn').classList.toggle('hidden', tabs.includes(view));
   $$('#tabbar .tab-btn').forEach((b) => b.classList.toggle('active', b.dataset.view === view));
@@ -367,6 +384,7 @@ const MODES = [
   { id: 'dictate', icon: '⌨️', name: 'Dictation', desc: 'Hear it, spell it' },
   { id: 'match', icon: '🔗', name: 'Matching', desc: 'Pair 5 at a time' },
   { id: 'qa', icon: '🗣️', name: 'Q & A', desc: 'Understand and answer' },
+  { id: 'speak', icon: '🎤', name: 'Speaking', desc: 'Say it, get scored', mic: true },
   { id: 'mock', icon: '🎙️', name: 'Mock Interview', desc: 'This topic, in order' },
 ];
 
@@ -381,8 +399,9 @@ function renderTopic({ topicId } = {}) {
     <p class="sub">${esc(t.intro)}</p>
     <div class="bar" style="margin-bottom:18px"><i style="width:${s.pct}%;background:${t.color}"></i></div>
     ${voiceWarning()}
+    ${micWarning()}
     <div class="mode-grid">
-      ${MODES.map((m) => `<button class="mode-btn" data-mode="${m.id}">
+      ${MODES.filter((m) => !m.mic || micAvailable()).map((m) => `<button class="mode-btn" data-mode="${m.id}">
         <div class="m-icon">${m.icon}</div>
         <div class="m-name">${m.name}</div>
         <div class="m-desc">${m.desc}</div>
@@ -445,8 +464,9 @@ function renderInterviewTab() {
   const ready = all.filter((q) => (state.progress[q.key]?.box || 0) >= 2).length;
   main.innerHTML = `<div class="wrap">
     <h2>🎙️ The mock interview</h2>
-    <p class="sub">The real conversation runs through these ${all.length} questions. The official speaks formally, you answer in your own words. Practice topic by topic, then run the full interview here.</p>
+    <p class="sub">The real conversation runs through these ${all.length} questions. The official speaks formally, you answer in your own words${micAvailable() ? ' — out loud into the mic, or typed' : ''}. Practice topic by topic, then run the full interview here.</p>
     ${voiceWarning()}
+    ${micWarning()}
     <button class="btn primary" id="start-full">🎙️ Start the full mock interview</button>
     <p class="sub" style="margin-top:8px">${state.bestInterview !== null
       ? `Best run: <b>${state.bestInterview.right}/${state.bestInterview.total}</b> answered on the first try.`
@@ -512,26 +532,26 @@ function intakeControl(f) {
 
   if (f.type === 'choice' || f.type === 'pick') {
     const opts = f.options.map((o) => `
-      <label class="opt${v.k === o.k ? ' on' : ''}">
+      <label class="pick${v.k === o.k ? ' on' : ''}">
         <input type="radio" name="in-${f.id}" class="intake-opt" data-field="${f.id}" data-key="${o.k}"
                ${v.k === o.k ? 'checked' : ''}>
         <span>${esc(o.en)}</span>
       </label>`).join('');
     const other = f.other ? `
-      <label class="opt${v.k === '_other' ? ' on' : ''}">
+      <label class="pick${v.k === '_other' ? ' on' : ''}">
         <input type="radio" name="in-${f.id}" class="intake-opt" data-field="${f.id}" data-key="_other"
                ${v.k === '_other' ? 'checked' : ''}>
         <span>${esc(f.other)}</span>
       </label>
       ${v.k === '_other' ? `<input type="text" class="intake-other" data-field="${f.id}"
              value="${esc(v.other || '')}" placeholder="${esc(f.otherHelp || '')}" autocomplete="off">` : ''}` : '';
-    return `<div class="field">${label}<div class="opts">${opts}${other}</div></div>`;
+    return `<div class="field">${label}<div class="picks">${opts}${other}</div></div>`;
   }
 
   if (f.type === 'multi') {
     const keys = v.keys || [];
-    return `<div class="field">${label}<div class="opts">${f.options.map((o) => `
-      <label class="opt${keys.includes(o.k) ? ' on' : ''}">
+    return `<div class="field">${label}<div class="picks">${f.options.map((o) => `
+      <label class="pick${keys.includes(o.k) ? ' on' : ''}">
         <input type="checkbox" class="intake-multi" data-field="${f.id}" data-key="${o.k}"
                ${keys.includes(o.k) ? 'checked' : ''}>
         <span>${esc(o.en)}</span>
@@ -660,8 +680,14 @@ function renderMe() {
         <div><label for="hearts">Hearts</label><div class="hint">End a lesson after 5 mistakes (never in mock interviews)</div></div>
         <input type="checkbox" id="hearts" ${st.hearts ? 'checked' : ''}>
       </div>
+      ${speechInputSupported() ? `<div class="row">
+        <div><label for="mic">Speaking exercises</label><div class="hint">Say answers out loud and have them scored — needs mic access</div></div>
+        <input type="checkbox" id="mic" ${st.mic ? 'checked' : ''}>
+      </div>` : ''}
     </div>
+    ${micWarning()}
     <button class="btn ghost" id="test-voice">🔊 Test the Hungarian voice</button>
+    ${speechInputSupported() ? '<button class="btn ghost" id="test-mic">🎤 Test the microphone</button><div id="mic-test"></div>' : ''}
     <button class="btn ghost" id="reset" style="color:var(--accent)">Reset all progress</button>
     <p class="sub" style="margin-top:18px">Everything stays on this device. Install the app (Add to Home Screen) and it works offline.</p>
   </div>`;
@@ -711,10 +737,23 @@ function renderMe() {
   }));
   $('#rate').addEventListener('input', (e) => { st.rate = Number(e.target.value); save(); });
   $('#rate').addEventListener('change', () => speak('Jó napot kívánok! Foglaljon helyet!'));
-  ['autoplay', 'showSay', 'hearts'].forEach((id) => {
-    $(`#${id}`).addEventListener('change', (e) => { st[id] = e.target.checked; save(); });
+  ['autoplay', 'showSay', 'hearts', 'mic'].forEach((id) => {
+    $(`#${id}`)?.addEventListener('change', (e) => { st[id] = e.target.checked; save(); });
   });
   $('#test-voice').addEventListener('click', () => speak('Miért szeretne magyar állampolgár lenni?'));
+
+  // A dry run of the whole speaking path: permission prompt, recognizer,
+  // scorer — on a sentence nobody has to have learned yet.
+  $('#test-mic')?.addEventListener('click', () => {
+    const target = 'Jó napot kívánok!';
+    $('#mic-test').innerHTML = `<p class="sub" style="margin-top:12px">Say: <b>${esc(target)}</b> (\u201Cyoh nah-pot kee-vah-nok\u201D)</p><div id="mic-test-pad"></div>`;
+    micPad($('#mic-test-pad'), {
+      target,
+      onSettle: (res) => {
+        $('#mic-test').innerHTML = `<div class="note">Microphone works — that one scored ${res.pct}%.</div>`;
+      },
+    });
+  });
   $('#reset').addEventListener('click', () => {
     if (!confirm('Delete all XP, streak, profile and progress on this device?')) return;
     state = defaults();
@@ -755,22 +794,31 @@ function answerDistractors(item, n) {
   return [...near, ...far].slice(0, n);
 }
 
-const CHUNK_TYPES = ['flash', 'listen', 'build', 'dictate'];
-// The qa ladder ends in unscaffolded recall: hear the question, produce the
-// answer from nothing. It only appears once an item has some practice behind
-// it (box >= 2), so the scaffold fades instead of staying forever.
-const QA_TYPES = ['qa-listen', 'qa-respond', 'qa-build', 'qa-recall'];
+// Saying it out loud joins the rotation only where the browser can hear it,
+// so a Firefox session still gets a complete lesson, just a silent one.
+const chunkTypes = () => (micAvailable() ? ['flash', 'listen', 'build', 'dictate', 'speak'] : ['flash', 'listen', 'build', 'dictate']);
+// The qa ladder ends unscaffolded: hear the question, produce the answer from
+// nothing — typed, or spoken into the mic. Those last rungs only appear once
+// an item has some practice behind it (box >= 2), so the scaffold fades
+// instead of staying forever.
+const qaTypes = () => (micAvailable()
+  ? ['qa-listen', 'qa-respond', 'qa-build', 'qa-recall', 'qa-speak']
+  : ['qa-listen', 'qa-respond', 'qa-build', 'qa-recall']);
+
+const UNSCAFFOLDED = new Set(['qa-recall', 'qa-speak']);
 
 function exerciseFor(item, mode, i) {
+  const chunks = chunkTypes();
   if (item.kind === 'chunk') {
-    if (CHUNK_TYPES.includes(mode)) return { type: mode, item };
-    return { type: CHUNK_TYPES[i % CHUNK_TYPES.length], item };
+    if (chunks.includes(mode)) return { type: mode, item };
+    return { type: chunks[i % chunks.length], item };
   }
   let type;
   if (mode === 'listen') type = 'qa-listen';
   else if (mode === 'build' || mode === 'dictate') type = 'qa-build';
-  else type = QA_TYPES[i % QA_TYPES.length];
-  if (type === 'qa-recall' && (state.progress[item.key]?.box || 0) < 2) type = 'qa-build';
+  else if (mode === 'speak') type = 'qa-speak';
+  else type = qaTypes()[i % qaTypes().length];
+  if (UNSCAFFOLDED.has(type) && (state.progress[item.key]?.box || 0) < 2) type = 'qa-build';
   return { type, item };
 }
 
@@ -783,6 +831,11 @@ function buildQueue(pool, mode) {
       if (part.length >= 2) rounds.push({ type: 'match', items: part });
     }
     return rounds;
+  }
+  if (mode === 'speak') {
+    // Speaking practice is worth having from the first meeting of a phrase, so
+    // unlike the recall rungs it never falls back to tiles.
+    return pickItems(pool, 10).map((w) => ({ type: w.kind === 'chunk' ? 'speak' : 'qa-speak', item: w }));
   }
   if (mode === 'flash') {
     return pickItems(pool.filter((w) => w.kind === 'chunk'), 10).map((w) => ({ type: 'flash', item: w }));
@@ -864,6 +917,8 @@ function renderSession() {
     build: renderBuild,
     dictate: renderDictate,
     match: renderMatch,
+    speak: renderSpeak,
+    'qa-speak': renderQaSpeak,
     'qa-listen': renderQaListen,
     'qa-respond': renderQaRespond,
     'qa-build': renderQaBuild,
@@ -1094,6 +1149,197 @@ function renderMatch(ex) {
   }));
 }
 
+// ----- speaking exercises -----
+
+// The microphone pad: tap, say the sentence, see it scored word by word.
+// Nothing is graded until the learner taps Continue, so a fumbled first take
+// can be re-recorded — the score that counts is their best of the attempts.
+let activeMicPad = null;
+
+function stopMic() {
+  activeMicPad?.stop();
+  activeMicPad = null;
+}
+
+function micPad(host, { target, onSettle }) {
+  let listener = null;
+  let best = null;
+
+  host.innerHTML = `
+    <div class="mic-pad">
+      <button class="mic-btn" id="mic-btn" aria-label="Record what you say">🎤</button>
+      <div class="mic-state" id="mic-state">Tap the mic, then say it out loud</div>
+      <div class="mic-heard hidden" id="mic-heard"></div>
+    </div>
+    <div id="mic-result"></div>`;
+
+  const btn = $('#mic-btn', host);
+  const stateLine = $('#mic-state', host);
+  const heard = $('#mic-heard', host);
+  const result = $('#mic-result', host);
+
+  function idle(msg) {
+    listener = null;
+    btn.classList.remove('listening');
+    btn.textContent = '🎤';
+    btn.disabled = false;
+    stateLine.textContent = msg;
+  }
+
+  function start() {
+    result.innerHTML = '';
+    heard.classList.add('hidden');
+    heard.textContent = '';
+    btn.classList.add('listening');
+    btn.textContent = '⏹';
+    stateLine.textContent = 'Starting…';
+
+    listener = listen({
+      lang: 'hu-HU',
+      onStart: () => { stateLine.textContent = 'Listening — tap again when you finish'; },
+      onPartial: (text) => {
+        heard.classList.remove('hidden');
+        heard.textContent = text;
+      },
+    });
+
+    listener.promise.then(({ alternatives, error }) => {
+      if (!host.isConnected) return;
+      const res = scoreSpeech(target, alternatives);
+      if (!res.heard) {
+        idle(micErrorMessage(error) || "Didn't catch that — try again.");
+        return;
+      }
+      idle('Tap the mic to say it again');
+      heard.classList.add('hidden');
+      if (!best || res.score > best.score) best = res;
+      showResult(res);
+    });
+  }
+
+  function showResult(res) {
+    const verdictTitle = { pass: '🟢 Understood', close: '🟡 Understandable, barely', miss: '🔴 Not there yet' }[res.verdict];
+    const bestLine = best && best.score > res.score
+      ? `<div class="mic-best">Best attempt so far: <b>${best.pct}%</b> — that is the one that counts.</div>` : '';
+    result.innerHTML = `
+      <div class="mic-score ${res.verdict}">
+        <div class="mic-score-head">
+          <span class="mic-verdict">${verdictTitle}</span>
+          <span class="mic-pct">${res.pct}%</span>
+        </div>
+        <div class="bar"><i style="width:${res.pct}%"></i></div>
+        <div class="mic-diff">${diffHtml(res.diff)}</div>
+        <div class="mic-transcript">Heard: „${esc(res.transcript)}”</div>
+        ${res.accentsOnly ? '<div class="mic-transcript">Vowel length drifted on the marked words — in Hungarian that changes meaning.</div>' : ''}
+        ${bestLine}
+      </div>
+      <button class="btn" id="mic-retry">🔁 Say it again</button>
+      <button class="btn primary" id="mic-continue">Continue</button>`;
+
+    $('#mic-retry', result).addEventListener('click', start);
+    $('#mic-continue', result).addEventListener('click', () => {
+      $('#mic-continue', result).disabled = true;
+      $('#mic-retry', result).disabled = true;
+      btn.disabled = true;
+      onSettle(best);
+    });
+    result.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }
+
+  btn.addEventListener('click', () => {
+    if (listener) { listener.stop(); return; }
+    start();
+  });
+
+  activeMicPad = { stop() { listener?.abort(); listener = null; } };
+  return activeMicPad;
+}
+
+// The target sentence, word by word, coloured by what the recognizer heard.
+function diffHtml(diff) {
+  const words = diff.filter((d) => d.status !== 'extra').map((d) => {
+    const label = esc(d.want);
+    if (d.status === 'ok') return `<span class="dw ok">${label}</span>`;
+    if (d.status === 'near') return `<span class="dw near" title="heard: ${esc(d.said)}">${label}</span>`;
+    if (d.status === 'missing') return `<span class="dw missing">${label}</span>`;
+    return `<span class="dw wrong" title="heard: ${esc(d.said)}">${label}</span>`;
+  }).join(' ');
+  const extra = diff.filter((d) => d.status === 'extra').map((d) => esc(d.said));
+  return words + (extra.length ? `<div class="mic-extra">Extra words heard: ${extra.join(', ')}</div>` : '');
+}
+
+// A spoken answer that the recognizer understood cleanly is the strongest
+// evidence of production the app can gather, so it earns full mastery credit.
+// A merely understandable one still counts correct, but not as production —
+// same rule the accent-blind dictation answers live under.
+function speechAnswered(ex, res, target, model) {
+  // Once the attempt is graded the scaffold buttons have nothing left to
+  // offer — the model answer is in the feedback panel below.
+  $('#reveal')?.classList.add('hidden');
+  const pass = res.verdict === 'pass';
+  const correct = pass || res.verdict === 'close';
+  speak(target);
+  const detail = pass
+    ? `${esc(target)} — ${esc(model)}`
+    : `Say it like this: <b>${esc(target)}</b> — ${esc(model)}`;
+  const title = pass
+    ? (ex.assisted ? 'Understood — now try it without the model.' : `Understood — ${res.pct}%.`)
+    : correct ? `An official would have got it, just — ${res.pct}%.` : `Not close enough — ${res.pct}%.`;
+  answered(correct, ex, detail, title, false, pass && !ex.assisted);
+}
+
+function renderSpeak(ex) {
+  const w = ex.item;
+  const target = chunkText(w);
+  exBox().innerHTML = `
+    <div class="prompt-card">
+      <div class="prompt-kind">🎤 Say it in Hungarian</div>
+      <div class="prompt-word" style="font-size:22px" id="speak-prompt">${esc(w.en)}</div>
+      ${state.settings.showSay ? '<div class="prompt-say" id="speak-say"></div>' : ''}
+    </div>
+    <div id="mic-host"></div>
+    <button class="btn ghost" id="reveal">👀 Show and play it first (costs the production credit)</button>`;
+
+  $('#reveal').addEventListener('click', () => {
+    ex.assisted = true;
+    $('#reveal').classList.add('hidden');
+    $('#speak-prompt').innerHTML = `${esc(target)}<div class="prompt-say">${esc(w.en)}</div>`;
+    const say = $('#speak-say');
+    if (say) say.textContent = w.say;
+    speak(target);
+  });
+
+  micPad($('#mic-host'), { target, onSettle: (res) => speechAnswered(ex, res, target, w.en) });
+}
+
+// Answering the official out loud: the drill the app used to leave to the
+// learner's honour system. Question in, spoken answer out, scored.
+function renderQaSpeak(ex) {
+  const w = ex.item;
+  const ask = askForm(w);
+  const target = answerTextOf(w);
+  exBox().innerHTML = `
+    <div class="prompt-card interviewer">
+      <div class="prompt-kind">🎙️ ${ex.interview ? 'The official asks — answer out loud' : 'Answer out loud'}</div>
+      <div class="prompt-word" style="font-size:22px">„${esc(ask.hu)}”</div>
+      ${state.settings.showSay ? `<div class="prompt-say">${esc(w.q.en)}</div>` : ''}
+      <button class="speak-btn" id="say">🔊 Play the question</button>
+    </div>
+    <div id="mic-host"></div>
+    <button class="btn ghost" id="reveal">👀 Show me my answer${ex.interview ? ' (costs the first-try credit)' : ''}</button>`;
+
+  $('#say').addEventListener('click', () => speak(ask.hu));
+  if (state.settings.autoplay) setTimeout(() => speak(ask.hu), 250);
+
+  $('#reveal').addEventListener('click', () => {
+    ex.assisted = true;
+    $('#reveal').classList.add('hidden');
+    $('#mic-host').insertAdjacentHTML('beforebegin', `<div class="note">${esc(target)} — ${esc(w.a.en)}</div>`);
+  });
+
+  micPad($('#mic-host'), { target, onSettle: (res) => speechAnswered(ex, res, target, w.a.en) });
+}
+
 // ----- interview-question exercises -----
 
 function renderQaListen(ex) {
@@ -1200,6 +1446,7 @@ function renderQaRecall(ex) {
            spellcheck="false" placeholder="a válaszom…">
     <div class="accent-row">${['á','é','í','ó','ö','ő','ú','ü','ű'].map((a) => `<button class="accent-key" data-a="${a}">${a}</button>`).join('')}</div>
     <button class="btn primary" id="check">Check</button>
+    ${micAvailable() ? '<button class="btn ghost" id="speak-instead">🎤 Answer out loud instead</button>' : ''}
     <button class="btn ghost" id="tiles-fallback">🧱 I need the tiles${ex.interview ? ' (costs the first-try credit)' : ''}</button>`;
 
   const input = $('#typed');
@@ -1214,6 +1461,13 @@ function renderQaRecall(ex) {
     input.setSelectionRange(start + 1, start + 1);
     input.focus();
   }));
+
+  // Speaking the answer is the same unscaffolded rung, so it costs nothing —
+  // it just gets judged by the mic instead of the keyboard.
+  $('#speak-instead')?.addEventListener('click', () => {
+    ex.type = 'qa-speak';
+    renderQaSpeak(ex);
+  });
 
   $('#tiles-fallback').addEventListener('click', () => {
     ex.assisted = true;
@@ -1247,10 +1501,15 @@ function renderQaRecall(ex) {
 const PRAISE = ['Szuper!', 'Nagyon jó!', 'Ez az!', 'Remek!', 'Jól van!', 'Kiváló!'];
 const pickPraise = () => PRAISE[Math.floor(Math.random() * PRAISE.length)];
 
-// Which exercise types count as production for the mastery cap. Dictation and
-// recall pass an explicit flag instead, because their accent-blind "close"
-// answers count as correct without counting as production.
+// Which exercise types count as production for the mastery cap. Dictation,
+// recall and the spoken drills pass an explicit flag instead, because their
+// tolerant "close enough" answers count as correct without counting as
+// production.
 const PRODUCTION_TYPES = new Set(['build', 'qa-build']);
+
+// Producing a whole sentence from nothing is worth more than recognising one;
+// doing it out loud is worth the same as doing it from memory in writing.
+const XP_FOR = { 'qa-recall': 20, 'qa-speak': 20, speak: 15 };
 
 function answered(correct, ex, detail, titleOverride, alreadyGraded, productionOverride) {
   const s = session;
@@ -1258,13 +1517,13 @@ function answered(correct, ex, detail, titleOverride, alreadyGraded, productionO
   if (!alreadyGraded && ex.item) grade(ex.item.key, correct, production);
   if (correct) {
     s.right++;
-    s.xp += ex.type === 'qa-recall' ? 20 : 10;
-    if (s.interview && !ex.repeat && !ex.assisted && ex.type === 'qa-recall') s.firstTry++;
+    s.xp += XP_FOR[ex.type] || 10;
+    if (s.interview && !ex.repeat && !ex.assisted && UNSCAFFOLDED.has(ex.type)) s.firstTry++;
   } else {
     s.wrong++;
     if (state.settings.hearts && !s.interview) s.hearts--;
   }
-  if (s.interview && ex.item && (!correct || ex.assisted || ex.type !== 'qa-recall')) s.missed.push(ex.item.key);
+  if (s.interview && ex.item && (!correct || ex.assisted || !UNSCAFFOLDED.has(ex.type))) s.missed.push(ex.item.key);
   save();
 
   // Missed items come back once at the end — except in the mock interview,

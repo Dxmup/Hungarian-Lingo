@@ -61,6 +61,24 @@ moves most of the answer side into the recorded catalogue and closes the
 Listening-mode gap without touching the privacy architecture at all. The cost is
 size: ~90 more clips at ~9 KB is under a megabyte.
 
+## Two Hungarian number spellers, and two accent strippers
+
+Noticed when the speaking work and the English intake met in a merge; neither
+is a bug today and both are worth collapsing before a third copy appears.
+
+`harmony.js` has `NUM_WORD` / `numWord` / `ageWord` — counting words for
+composing answers, where Hungarian wants the short form ("két gyerekem", not
+"kettő"). `speech.js` has `HU_ONES` / `HU_TENS` / `huNumber` / `spellNumbers` —
+year and numeral spelling, so a spoken "ezerkilencszáznyolcvanötben" matches a
+written `1985-ben` when scoring. Genuinely different jobs, which is why they did
+not collide, but they will drift on the shared range.
+
+Likewise `stripAccents` in `app.js` and `stripDiacritics` in `speech.js`.
+
+Same reasoning as the harmony extraction: one implementation, in `harmony.js`,
+because a disagreement between them would surface as a spoken answer being
+marked wrong for a sentence the app itself composed.
+
 ## Personalized audio, generated locally
 
 Once a learner has filled in their profile, their 45 slotted utterances become
