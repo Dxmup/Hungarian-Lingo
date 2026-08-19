@@ -25,7 +25,8 @@ const defaults = () => ({
   xp: 0,
   streak: { count: 0, last: null },
   progress: {},                       // key -> { box, due, right, wrong }
-  profile: {},                        // PROFILE_FIELDS id -> learner's value
+  intake: {},                         // INTAKE id -> what the learner answered, in English
+  profile: {},                        // PROFILE_FIELDS id -> Hungarian, composed from intake
   bestInterview: null,                // best full mock-interview score
   settings: { rate: 0.8, autoplay: true, showSay: true, hearts: true },
 });
@@ -37,12 +38,21 @@ function load() {
     const saved = JSON.parse(localStorage.getItem(SAVE_KEY));
     if (!saved) return defaults();
     // Merge onto defaults so a save written by an older version keeps working.
-    return {
+    const s = {
       ...defaults(),
       ...saved,
       settings: { ...defaults().settings, ...(saved.settings || {}) },
+      intake: { ...(saved.intake || {}) },
       profile: { ...(saved.profile || {}) },
     };
+    /* Before the intake was asked in English, the profile WAS the input — the
+     * learner typed Hungarian into it directly. Such a save has answers but no
+     * intake to recompose them from, so the old values are kept aside and used
+     * for any slot the new form has not answered yet. Answers are replaced one
+     * question at a time as the learner works through the form, rather than 33
+     * hand-written sentences vanishing on the first tap. */
+    if (!Object.keys(s.intake).length && Object.keys(s.profile).length) s.legacyProfile = { ...s.profile };
+    return s;
   } catch {
     return defaults();
   }
@@ -116,49 +126,9 @@ function touchStreak() {
 // Chunks written with ___ get the learner's own detail dropped in, so every
 // drill rehearses the sentence they will actually say in the interview.
 //
-// Hungarian suffixes obey vowel harmony, so a template written "___-ban" must
-// become "1985-ben" when the filled year is read with front vowels. harmony()
-// classifies digit strings by how the year is read aloud (…öt → front,
-// …nyolc → back). Written-letter classification is a fallback only — foreign
-// names can be spelled back but pronounced front (Cleveland), which is why
-// every town slot uses the fixed "___ városában/városából" frame instead of
-// a bare suffix.
-
-const BACK_V = 'aáoóuú';
-const FRONT_V = 'eéiíöőüű';
-// Reading of a year's final element: ones digit, or the decade for …X0.
-const DIGIT_H = { 1: 'f', 2: 'f', 3: 'b', 4: 'f', 5: 'f', 6: 'b', 7: 'f', 8: 'b', 9: 'f' };
-const DECADE_H = { 1: 'f', 2: 'b', 3: 'b', 4: 'f', 5: 'f', 6: 'b', 7: 'f', 8: 'b', 9: 'f' };
-
-function harmony(value) {
-  const v = value.trim();
-  const digits = v.match(/(\d+)\s*$/);
-  if (digits) {
-    const d = digits[1];
-    const ones = Number(d[d.length - 1]);
-    if (ones) return DIGIT_H[ones];
-    const tens = Number(d[d.length - 2] || 0);
-    if (tens) return DECADE_H[tens];
-    // …00: kilencszáz (back) below 2000, kétezer (front) from 2000 up.
-    return Number(d) >= 2000 ? 'f' : 'b';
-  }
-  for (let i = v.length - 1; i >= 0; i--) {
-    const c = v[i].toLowerCase();
-    if (BACK_V.includes(c)) return 'b';
-    if (FRONT_V.includes(c)) return 'f';
-  }
-  return 'b';
-}
-
-const SUFFIX_PAIRS = { ban: 'ben', ból: 'ből', ba: 'be' };
-
-function withSuffix(value, backForm) {
-  // Only digit values take the suffix (1985-ben). A text value in a year slot
-  // is an era phrase that carries its own grammar ("a háború után").
-  if (!/\d\s*$/.test(value)) return value;
-  const form = harmony(value) === 'b' ? backForm : SUFFIX_PAIRS[backForm];
-  return `${value}-${form}`;
-}
+// The values themselves are composed in profile.js from the learner's English
+// answers; harmony(), withSuffix() and SUFFIX_PAIRS live in harmony.js so both
+// sides use one set of rules.
 
 function fill(text, holder) {
   if (!text.includes('___')) return text;
@@ -518,6 +488,103 @@ function renderReview() {
 
 // ---------- Me (profile + settings + stats) ----------
 
+/* Two views over the same data: the questions, asked in English, and the
+ * Hungarian they produce. The learner answers in a language they have, then
+ * sees exactly what they will be drilled on and what they will say out loud —
+ * nothing is generated behind their back. */
+let meView = 'answers';
+
+/* The learner's own value goes in as typed. Everything else is a fixed option
+ * from profile.js, so the only untrusted text is a name or a town. */
+function intakeControl(f) {
+  const v = state.intake[f.id] || {};
+  const label = `<label for="in-${f.id}">${esc(f.label)}</label>
+    ${f.help ? `<div class="hint">${esc(f.help)}</div>` : ''}`;
+
+  if (f.type === 'text' || f.type === 'number') {
+    return `<div class="field">${label}
+      <input type="${f.type === 'number' ? 'number' : 'text'}" id="in-${f.id}"
+             class="intake-input" data-field="${f.id}"
+             ${f.min != null ? `min="${f.min}"` : ''} ${f.max != null ? `max="${f.max}"` : ''}
+             value="${esc(v.value ?? '')}" placeholder="${esc(f.placeholder || '')}"
+             autocomplete="off"></div>`;
+  }
+
+  if (f.type === 'choice' || f.type === 'pick') {
+    const opts = f.options.map((o) => `
+      <label class="opt${v.k === o.k ? ' on' : ''}">
+        <input type="radio" name="in-${f.id}" class="intake-opt" data-field="${f.id}" data-key="${o.k}"
+               ${v.k === o.k ? 'checked' : ''}>
+        <span>${esc(o.en)}</span>
+      </label>`).join('');
+    const other = f.other ? `
+      <label class="opt${v.k === '_other' ? ' on' : ''}">
+        <input type="radio" name="in-${f.id}" class="intake-opt" data-field="${f.id}" data-key="_other"
+               ${v.k === '_other' ? 'checked' : ''}>
+        <span>${esc(f.other)}</span>
+      </label>
+      ${v.k === '_other' ? `<input type="text" class="intake-other" data-field="${f.id}"
+             value="${esc(v.other || '')}" placeholder="${esc(f.otherHelp || '')}" autocomplete="off">` : ''}` : '';
+    return `<div class="field">${label}<div class="opts">${opts}${other}</div></div>`;
+  }
+
+  if (f.type === 'multi') {
+    const keys = v.keys || [];
+    return `<div class="field">${label}<div class="opts">${f.options.map((o) => `
+      <label class="opt${keys.includes(o.k) ? ' on' : ''}">
+        <input type="checkbox" class="intake-multi" data-field="${f.id}" data-key="${o.k}"
+               ${keys.includes(o.k) ? 'checked' : ''}>
+        <span>${esc(o.en)}</span>
+      </label>`).join('')}</div></div>`;
+  }
+
+  if (f.type === 'siblings') {
+    return `<div class="field">${label}<div class="counts">${SIBLING_WORDS.map((w) => `
+      <div class="count">
+        <span>${esc(w.en)}</span>
+        <input type="number" min="0" max="9" class="intake-sib" data-field="${f.id}" data-key="${w.id}"
+               value="${esc(v[w.id] ?? '')}" placeholder="0">
+      </div>`).join('')}</div></div>`;
+  }
+
+  if (f.type === 'children') {
+    const n = Number(state.intake.kidCount?.value) || 0;
+    const rows = v.rows || [];
+    return `<div class="field">${label}${Array.from({ length: n }, (_, i) => `
+      <div class="count">
+        <input type="text" class="intake-kid" data-field="${f.id}" data-row="${i}" data-key="name"
+               value="${esc(rows[i]?.name || '')}" placeholder="Name" autocomplete="off">
+        <input type="number" min="0" max="60" class="intake-kid" data-field="${f.id}" data-row="${i}" data-key="age"
+               value="${esc(rows[i]?.age ?? '')}" placeholder="Age">
+      </div>`).join('')}</div>`;
+  }
+
+  return '';
+}
+
+/* The sentence each slot actually lives in, taken from the curriculum so the
+ * review screen shows what the learner will SAY rather than the fragment they
+ * chose — "Denver" is not the useful thing to check, "Denver városában lakom"
+ * is. Model answers override chunks: the answer is what the official hears. */
+const SENTENCE_FOR_SLOT = (() => {
+  const m = {};
+  for (const t of TOPICS) for (const it of t.items || []) if (it.slot && !m[it.slot]) m[it.slot] = it.hu;
+  for (const t of TOPICS) for (const qa of t.qa || []) if (qa.a?.slot) m[qa.a.slot] = qa.a.hu;
+  return m;
+})();
+
+function reviewSentence(id) {
+  return fill(SENTENCE_FOR_SLOT[id] || '___.', { slot: id });
+}
+
+/* Recompose after every edit. The profile is derived data — never edited
+ * directly — so there is exactly one way for a Hungarian sentence to get into
+ * a drill, and it went through the vetted option list to get there. */
+function syncProfile() {
+  state.profile = { ...(state.legacyProfile || {}), ...composeProfile(state.intake) };
+  save();
+}
+
 function renderMe() {
   $('#topbar-title').textContent = 'My Answers';
   const st = state.settings;
@@ -527,18 +594,46 @@ function renderMe() {
   const wrong = seen.reduce((n, w) => n + state.progress[w.key].wrong, 0);
   const acc = right + wrong ? Math.round(right / (right + wrong) * 100) : 0;
 
+  const fields = visibleFields(state.intake);
+  const answered = fields.filter((f) => intakeAnswered(state.intake, f)).length;
+
   main.innerHTML = `<div class="wrap">
     <h2>👤 Your answers</h2>
-    <p class="sub">Ultralearning rule one: practice the real thing. Fill these in and every drill uses <b>your</b> sentences — the exact ones you'll say to the official.</p>
-    <div class="card">
-      ${PROFILE_FIELDS.map((f) => `
-        <div class="field">
-          <label for="pf-${f.id}">${esc(f.label)}</label>
-          <input type="text" id="pf-${f.id}" class="profile-input" data-field="${f.id}"
-                 value="${esc(state.profile[f.id] || '')}" placeholder="${esc(f.example)}"
-                 autocapitalize="off" autocomplete="off">
-        </div>`).join('')}
+    <p class="sub">Ultralearning rule one: practice the real thing. Answer these in English and every drill uses <b>your</b> sentences — the exact ones you'll say to the official.</p>
+
+    <div class="tabs">
+      <button class="tab${meView === 'answers' ? ' on' : ''}" data-view="answers">Questions</button>
+      <button class="tab${meView === 'hungarian' ? ' on' : ''}" data-view="hungarian">My Hungarian (${PROFILE_FIELDS.filter((f) => state.profile[f.id]).length})</button>
     </div>
+
+    ${state.legacyProfile ? `<div class="card note">
+      <b>Your old answers are kept.</b> You wrote these in Hungarian yourself, before
+      the app started asking in English. Each one is replaced only when you answer the
+      matching question below, so you can work through the form at your own pace and
+      nothing disappears in the meantime.
+    </div>` : ''}
+
+    ${meView === 'answers' ? `
+    <div class="card">
+      <div class="hint" style="margin-bottom:14px">${answered} of ${fields.length} answered — you can change any of them later.</div>
+      ${fields.map(intakeControl).join('')}
+    </div>
+    <button class="btn primary" id="see-hungarian">See my Hungarian answers →</button>
+    ` : `
+    <p class="sub">These are built from your answers, and these are the sentences the
+    app will drill. Tap any one to hear it. If something is wrong, go back and change
+    the answer that made it.</p>
+    <div class="card">
+      ${PROFILE_FIELDS.filter((f) => state.profile[f.id]).map((f) => {
+        const hu = reviewSentence(f.id);
+        return `<div class="review" data-hu="${esc(hu)}">
+          <div class="review-q">${esc(slotLabel(f.id))}</div>
+          <div class="review-hu">${esc(hu)} <span class="spk">🔊</span></div>
+        </div>`;
+      }).join('') || '<div class="hint">Nothing yet — answer a few questions first.</div>'}
+    </div>
+    <button class="btn ghost" id="edit-answers">← Change my answers</button>
+    `}
     <div class="stat-grid">
       <div class="stat-box"><b>${state.xp}</b><span>XP</span></div>
       <div class="stat-box"><b>${state.streak.count}</b><span>day streak</span></div>
@@ -571,9 +666,48 @@ function renderMe() {
     <p class="sub" style="margin-top:18px">Everything stays on this device. Install the app (Add to Home Screen) and it works offline.</p>
   </div>`;
 
-  $$('.profile-input').forEach((input) => input.addEventListener('input', () => {
-    state.profile[input.dataset.field] = input.value;
-    save();
+  /* An intake edit can change which questions apply — picking "married" adds
+   * the spouse field, "0 children" removes the names — so every write
+   * recomposes and re-renders rather than trying to patch the DOM in place. */
+  const edit = (id, patch, rerender = false) => {
+    state.intake[id] = { ...(state.intake[id] || {}), ...patch };
+    syncProfile();
+    if (rerender) renderMe();
+  };
+
+  $$('.tab').forEach((b) => b.addEventListener('click', () => { meView = b.dataset.view; renderMe(); }));
+  $('#see-hungarian')?.addEventListener('click', () => { meView = 'hungarian'; renderMe(); });
+  $('#edit-answers')?.addEventListener('click', () => { meView = 'answers'; renderMe(); });
+  $$('.review').forEach((r) => r.addEventListener('click', () => speak(r.dataset.hu)));
+
+  // Typing must not re-render — that would drop focus on every keystroke.
+  $$('.intake-input').forEach((i) => i.addEventListener('input', () => {
+    edit(i.dataset.field, { value: i.value }, false);
+    // The child-name rows are generated from the count, so that one field does
+    // need the form rebuilt — but only once the learner has stopped typing.
+    if (i.dataset.field === 'kidCount') clearTimeout(i._t), i._t = setTimeout(renderMe, 600);
+  }));
+
+  $$('.intake-opt').forEach((i) => i.addEventListener('change', () =>
+    edit(i.dataset.field, { k: i.dataset.key }, true)));
+
+  $$('.intake-other').forEach((i) => i.addEventListener('input', () =>
+    edit(i.dataset.field, { other: i.value }, false)));
+
+  $$('.intake-multi').forEach((i) => i.addEventListener('change', () => {
+    const cur = new Set(state.intake[i.dataset.field]?.keys || []);
+    i.checked ? cur.add(i.dataset.key) : cur.delete(i.dataset.key);
+    edit(i.dataset.field, { keys: [...cur] }, true);
+  }));
+
+  $$('.intake-sib').forEach((i) => i.addEventListener('input', () =>
+    edit(i.dataset.field, { [i.dataset.key]: i.value }, false)));
+
+  $$('.intake-kid').forEach((i) => i.addEventListener('input', () => {
+    const rows = [...(state.intake.children?.rows || [])];
+    const n = Number(i.dataset.row);
+    rows[n] = { ...(rows[n] || {}), [i.dataset.key]: i.value };
+    edit('children', { rows }, false);
   }));
   $('#rate').addEventListener('input', (e) => { st.rate = Number(e.target.value); save(); });
   $('#rate').addEventListener('change', () => speak('Jó napot kívánok! Foglaljon helyet!'));

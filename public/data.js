@@ -18,40 +18,49 @@
  * gy=soft "dy", j/ly="y".
  */
 
+/* The slots the curriculum can fill, with a worked example each.
+ *
+ * These are OUTPUT: the Hungarian values are composed in profile.js from the
+ * questions the learner answers in English. Nothing here is asked directly,
+ * so there are no labels — profile.js owns the wording of every question.
+ *
+ * The examples are the fallback for an unfilled slot, so a learner who has
+ * answered nothing still sees a complete, grammatical sentence rather than a
+ * gap. They are not defaults and are never saved as the learner's answer. */
 const PROFILE_FIELDS = [
-  { id: 'name',      label: 'Your full name',                   example: 'Kovács Anna' },
-  { id: 'birthYear', label: 'Year you were born',               example: '1985' },
-  { id: 'birthPlace',label: 'Town where you were born',         example: 'Cleveland' },
-  { id: 'homeTown',  label: 'Town where you live now',          example: 'Denver' },
-  { id: 'country',   label: 'Your current citizenship (in Hungarian if you can)', example: 'amerikai' },
-  { id: 'job',       label: 'Your job (in Hungarian if you can)', example: 'mérnök' },
-  { id: 'age',       label: 'Your age (a number is fine)',      example: '42' },
-  { id: 'marital',   label: 'Marital status — just the word: nős (married man), férjnél (married woman), nőtlen / hajadon (single m/f)', example: 'nős' },
-  { id: 'spouseName',label: "Your spouse's name (skip if single)", example: 'Anna' },
-  { id: 'kids',      label: 'Do you have children? Your answer in Hungarian (e.g. "Igen, két gyerekem van" — or "Nincs gyerekem" if none)', example: 'Igen, két gyerekem van' },
-  { id: 'children',  label: 'Your children\'s names and ages, in Hungarian (skip if none)', example: 'Tamás tízéves, Emma nyolcéves' },
-  { id: 'siblings',  label: 'Your siblings, in Hungarian (e.g. "Van egy bátyám és egy húgom" — or "Nincs testvérem")', example: 'Van egy bátyám és egy húgom' },
-  { id: 'languages', label: 'Languages you speak, in Hungarian (angolul, spanyolul, németül…)', example: 'angolul' },
-  { id: 'parentsTown', label: 'Town where your parents live (skip if they have passed away)', example: 'Cleveland' },
-  { id: 'parents',   label: 'Are your parents alive, and where do they live? In Hungarian (e.g. "Igen, a szüleim Cleveland városában élnek" — or "Sajnos már nem élnek")', example: 'Igen, a szüleim Cleveland városában élnek' },
-  { id: 'famHu',     label: 'Does your family speak Hungarian? In Hungarian (e.g. "Egy kicsit, otthon néha magyarul beszélünk" — or "Nem, csak én tanulok magyarul")', example: 'Egy kicsit, otthon néha magyarul beszélünk' },
-  { id: 'homeHu',    label: 'Did you speak Hungarian at home growing up? In Hungarian (e.g. "Néha igen, a nagymamám magyarul beszélt velem" — or "Sajnos nem")', example: 'Néha igen, a nagymamám magyarul beszélt velem' },
-  { id: 'intro',     label: 'Your 2–3 sentence self-introduction in Hungarian — build it from your other answers (name, town, job)', example: 'A nevem Kovács Anna. Denver városában lakom, és mérnök vagyok.' },
-  { id: 'day',       label: 'Your average day, in one Hungarian sentence', example: 'Reggel dolgozni megyek, este otthon vacsorázom' },
-  { id: 'relatives', label: 'Relatives in Hungary? In Hungarian (e.g. "Igen, vannak rokonaim Magyarországon, gyakran telefonálunk" — or "Sajnos már nincsenek rokonaim Magyarországon")', example: 'Igen, vannak rokonaim Magyarországon, gyakran telefonálunk' },
-  { id: 'ancestor',  label: 'Your Hungarian ancestor (e.g. "a nagymamám")', example: 'a nagymamám' },
-  { id: 'ancestorName', label: "That ancestor's full name",      example: 'Kovács Erzsébet' },
-  { id: 'ancestorTown', label: "That ancestor's home town",      example: 'Debrecen' },
-  { id: 'emigStory', label: 'When and why your family emigrated, in one Hungarian sentence', example: '1956-ban vándoroltak ki, mert jobb életet kerestek' },
-  { id: 'ancestorStory', label: 'One sentence about that ancestor, in Hungarian', example: 'A nagymamám sokat mesélt Magyarországról, és magyar ételeket főzött' },
-  { id: 'hungaryTrip', label: 'Have you been to Hungary? Your answer in Hungarian (e.g. "Igen, kétszer jártam Budapesten" — or "Még nem jártam Magyarországon")', example: 'Igen, kétszer jártam Budapesten' },
-  { id: 'hobbies',   label: 'Your free time, in one Hungarian sentence', example: 'Szabadidőmben szeretek olvasni és futni' },
-  { id: 'howLearn',  label: 'How you are learning Hungarian, in Hungarian', example: 'Egy alkalmazással tanulok, és mindennap gyakorlok' },
-  { id: 'food',      label: 'Hungarian food you like (or cook), in Hungarian', example: 'Igen, nagyon! Szeretem a gulyáslevest' },
-  { id: 'why',       label: 'Why you want Hungarian citizenship — THE question. One or two Hungarian sentences', example: 'Mert a családom magyar származású, és fontos nekem a magyar kultúra' },
-  { id: 'likeHu',    label: 'What you like about Hungary, in Hungarian', example: 'Szeretem Budapestet, az ételeket és az embereket' },
-  { id: 'celebrate', label: 'How you celebrate Hungarian holidays, if at all (e.g. "Ilyenkor a családdal ünnepelünk" — or "Még nem ünnepeljük őket")', example: 'Ilyenkor a családdal ünnepelünk' },
-  { id: 'traditions', label: 'Hungarian traditions your family keeps, if any (e.g. "Karácsonykor bejglit sütünk" — or "Sajnos még nem őrzünk magyar hagyományokat")', example: 'Karácsonykor bejglit sütünk' },
+  { id: 'name',          example: 'Kovács Anna' },
+  { id: 'birthYear',     example: '1985' },
+  { id: 'birthPlace',    example: 'Cleveland' },
+  { id: 'homeTown',      example: 'Denver' },
+  { id: 'country',       example: 'amerikai' },
+  { id: 'job',           example: 'mérnök' },
+  { id: 'age',           example: '42' },
+  { id: 'marital',       example: 'nős' },
+  { id: 'spouseName',    example: 'Anna' },
+  { id: 'kids',          example: 'Igen, két gyerekem van' },
+  { id: 'children',      example: 'Tamás tízéves, Emma nyolcéves' },
+  { id: 'siblings',      example: 'Van egy bátyám és egy húgom' },
+  { id: 'languages',     example: 'angolul' },
+  { id: 'parentsTown',   example: 'Cleveland' },
+  { id: 'parents',       example: 'Igen, a szüleim Cleveland városában élnek' },
+  { id: 'famHu',         example: 'Egy kicsit, otthon néha magyarul beszélünk' },
+  { id: 'homeHu',        example: 'Néha igen, a nagymamám magyarul beszélt velem' },
+  { id: 'intro',         example: 'A nevem Kovács Anna. Denver városában lakom, és mérnök vagyok.' },
+  { id: 'day',           example: 'Reggel dolgozni megyek, este otthon vacsorázom' },
+  { id: 'relatives',     example: 'Igen, vannak rokonaim Magyarországon, gyakran telefonálunk' },
+  { id: 'ancestor',      example: 'a nagymamám' },
+  { id: 'ancestorName',  example: 'Kovács Erzsébet' },
+  { id: 'ancestorTown',  example: 'Debrecen' },
+  { id: 'emigStory',     example: '1956-ban vándoroltak ki, mert jobb életet kerestek' },
+  { id: 'ancestorStory', example: 'A nagymamám sokat mesélt Magyarországról, és magyar ételeket főzött' },
+  { id: 'hungaryTrip',   example: 'Igen, kétszer jártam Budapesten' },
+  { id: 'hobbies',       example: 'Szabadidőmben szeretek olvasni és futni' },
+  { id: 'howLearn',      example: 'Egy alkalmazással tanulok, és mindennap gyakorlok' },
+  { id: 'food',          example: 'Igen, nagyon! Szeretem a gulyáslevest' },
+  { id: 'why',           example: 'Mert a családom magyar származású, és fontos nekem a magyar kultúra' },
+  { id: 'likeHu',        example: 'Szeretem Budapestet, az ételeket és az embereket' },
+  { id: 'celebrate',     example: 'Ilyenkor a családdal ünnepelünk' },
+  { id: 'traditions',    example: 'Karácsonykor bejglit sütünk' },
 ];
 
 const TOPICS = [

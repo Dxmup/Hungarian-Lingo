@@ -502,3 +502,60 @@ input[type="range"] { width: 130px; }
   font-family: inherit;
 }
 .field input:focus { outline: none; border-color: var(--accent); }
+
+/* ---------- English intake / Hungarian review ---------- */
+
+.tabs { display: flex; gap: 8px; margin-bottom: 14px; }
+.tabs .tab {
+  flex: 1;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--muted);
+  border-radius: 10px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.tabs .tab.on { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+
+.card.note { border-left: 3px solid var(--gold); font-size: 14px; line-height: 1.5; }
+
+/* Options are tap targets first — the whole row is the hit area, because this
+   form is filled on a phone. The native radio stays for keyboard and
+   accessibility rather than being replaced by a styled div. */
+.opts { display: flex; flex-direction: column; gap: 6px; }
+.opt {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg);
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 400;
+  color: var(--ink);
+  margin: 0;
+}
+.opt.on { border-color: var(--accent); background: var(--accent-soft); }
+.opt input { width: auto; margin: 2px 0 0; flex: none; accent-color: var(--accent); }
+.opt span { flex: 1; }
+.intake-other { margin-top: 6px; }
+
+.counts { display: flex; flex-direction: column; gap: 6px; }
+.count { display: flex; align-items: center; gap: 10px; }
+.count > span { flex: 1; font-size: 15px; }
+.count input { width: 84px; flex: none; }
+.count input[type="text"] { flex: 1; width: auto; }
+
+/* The review row is the payoff: the learner sees the sentence they will say,
+   not the answer they clicked. */
+.review { padding: 11px 0; cursor: pointer; }
+.review + .review { border-top: 1px solid var(--line); }
+.review-q { font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 3px; }
+.review-hu { font-size: 16px; line-height: 1.45; }
+.review .spk { opacity: 0.45; font-size: 13px; }
+.review:active .review-hu { color: var(--accent); }

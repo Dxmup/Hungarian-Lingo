@@ -34,11 +34,13 @@ Rapid-language-learning techniques live in the mechanics, not a manifesto:
 
 - **Chunking** — nothing is drilled below sentence level; tiles, dictation
   and recall all operate on whole utterances you could actually say
-- **Directness (Ultralearning)** — the "My Answers" profile (29 fields)
-  fills slots so every drill rehearses *your* sentences: your name, your
-  town, your grandmother, your reason for applying. A vowel-harmony engine
-  keeps the personalized Hungarian grammatical (1985**-ben**, 2003**-ban**,
-  `___ városában` frames for towns)
+- **Directness (Ultralearning)** — the "My Answers" profile fills slots so
+  every drill rehearses *your* sentences: your name, your town, your
+  grandmother, your reason for applying. The questions are asked **in
+  English** and the Hungarian is composed from vetted options, because a
+  beginner cannot write the sentences the app needs before learning them. A
+  vowel-harmony engine keeps the result grammatical (1985**-ben**,
+  2003**-ban**, `___ városában` frames for towns)
 - **Fading scaffolds** — the question ladder ends in unscaffolded recall:
   hear the question, produce the answer from nothing (double XP). It enters
   rotation once an item has practice behind it
@@ -72,11 +74,15 @@ Two sources, and the split is deliberate.
 
 **Anything with fixed Hungarian plays from recorded audio** — every interviewer
 question and phrasing variant, every chunk, and the model answers that are not
-personalized. 111 utterances in all, shipped in `public/audio/` as Opus
-(~7.6 KB each). Every clip was checked by transcribing it back with a Hungarian
-speech recogniser and keeping only the ones that came back intact; the
-catalogue's mean word error rate is 4.3%, against 13.9% for that same
-recogniser on recordings of native speakers.
+personalized. 111 such utterances, of which 104 are recorded and shipped in
+`public/audio/` as Opus (0.93 MB, ~8.8 KB each). Every clip was checked by
+transcribing it back with a Hungarian speech recogniser and keeping only the
+ones that came back intact; the catalogue's mean word error rate is 6.4%,
+against 13.9% for that same recogniser on recordings of native speakers.
+
+The 7 without audio are the shortest fragments — bare years, `a lakcímem`, two-word
+questions like `Ön nős?`. Too short to read as speech, the TTS model answers them
+instead of speaking them and returns nothing. They fall back to the device voice.
 
 **Anything with a `___` slot uses the Web Speech API** with a `hu-HU` voice —
 13 chunks and 32 model answers, assembled from your profile at runtime. Your
@@ -113,19 +119,28 @@ enabled.
 
 ## Extending the curriculum
 
-`public/data.js` holds everything: `PROFILE_FIELDS` (the learner's answers),
-and `TOPICS` with `items` (chunks) and `qa` (question→answer pairs tagged
-with `script` line numbers). Append new material to the end of a topic —
-indexes are part of the saved progress keys. Blanks written `___` fill from
-the profile; `___-ban`-style templates get vowel-harmony suffixes for digit
-values. Bump `CACHE_VERSION` in `public/sw.js` when shipping changes.
+`public/data.js` holds the curriculum: `PROFILE_FIELDS` (the slots a
+sentence can fill) and `TOPICS` with `items` (chunks) and `qa`
+(question→answer pairs tagged with `script` line numbers). Append new
+material to the end of a topic — indexes are part of the saved progress
+keys. Blanks written `___` fill from the profile; `___-ban`-style templates
+get vowel-harmony suffixes for digit values.
+
+`public/profile.js` holds the intake: the English questions, the vetted
+Hungarian each option produces, and `composeProfile()`. To add an answer
+option, add it to that field's `options` with an `en` and a `hu` — every
+`hu` string in the file is a sentence a learner will say to an official, so
+it belongs in the native-speaker review before it ships. Bump
+`CACHE_VERSION` in `public/sw.js` when shipping changes.
 
 ## Files
 
 ```
 public/index.html         app shell
-public/app.js             router, session engine, exercises, SRS, harmony engine
-public/data.js            profile fields + curriculum
+public/app.js             router, session engine, exercises, SRS
+public/data.js            curriculum + the slots it can fill
+public/harmony.js         vowel harmony, suffixes, Hungarian number words
+public/profile.js         English intake questions → composed Hungarian
 public/style.css          light + dark themes
 public/sw.js              offline cache
 public/manifest.json
@@ -150,6 +165,13 @@ node scripts/encode-audio.js    # WAV -> Opus, verifying nothing degraded
 Clip filenames are a SHA-1 of the Hungarian text, so editing a question
 produces a new file and stale audio can never silently attach to changed text.
 Delete a clip and rerun to replace it; `--force` regenerates everything.
+
+The generator paces itself at 5 requests a minute (`--rpm`) and skips any clip
+that already has a `.wav` or `.opus`, so an interrupted build resumes for free.
+The free TTS tier also has a **daily** cap, and the whole catalogue does not fit
+inside one day's allowance — expect to run this across two or three sessions.
+When the daily cap is what you have hit, the run stops and says so rather than
+sleeping on the API's retry hint, which points at midnight Pacific.
 
 `scripts/roundtrip.js`, `asr-baseline.js` and `score-clips.js` are the
 evaluation harness — they measure a voice by transcribing it back and scoring

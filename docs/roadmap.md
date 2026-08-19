@@ -2,24 +2,41 @@
 
 ## ⏭ Unfinished — pick this up next session
 
-**Finish the audio catalogue: 63 clips outstanding, 48 of 111 done.** The
-free-tier Gemini TTS daily quota ran out on 2026-08-18 and was still exhausted
-when the scope widened from questions to the whole curriculum. Nothing is
-broken and no code change is needed — the generator skips files that already
-exist, so once the quota resets:
+**The audio catalogue is 104 of 111 done** (0.93 MB, mean WER 6.4%). The
+remaining 7 are not a quota problem and will not be fixed by rerunning:
 
-```bash
-node scripts/build-audio.js     # picks up only what is missing
-node scripts/encode-audio.js    # folds them into the Opus catalogue + manifest
+```
+chunk    a lakcímem
+chunk    ezerkilencszáznyolcvanöt
+chunk    kétezer-huszonhat
+chunk    Nős vagyok. / Férjnél vagyok.
+variant  Hol dolgozik?
+variant  Ön nős?
+variant  Férjnél van?
 ```
 
-Outstanding: 49 chunks, 9 model answers, and the 5 questions and variants that
-the first run never reached (`Hol dolgozik?`, `Hány éves?`, `Ön nős?`,
-`Férjnél van?`, `Hogyan ünnepelnek?`). All fall back to device TTS meanwhile,
-which works — it is just not the good audio, and the mismatch is audible when
-a session mixes the two.
+They are too short to read as speech, so the TTS model answers them instead of
+speaking them: a 200 with no audio part and `finishReason OTHER`. The generator
+now retries five times before giving up, and these still come back empty. A
+`Say:` prefix does not rescue them either — that trick works on the sibling
+failure (a hard 400, on conversational chunks like `Elnézést, nem értem.`) and
+is applied there, but not here.
 
-Expect roughly 0.82 MB for the finished catalogue, up from 464 KB.
+Three ways out, none tried yet: pad the text with something unspoken to get it
+over the length threshold, generate them inside a longer carrier sentence and
+trim the audio, or accept the device voice for seven fragments. The middle one
+is the only one likely to sound right; the last is what ships today.
+
+**`Nős vagyok. / Férjnél vagyok.` is a curriculum bug, not an audio bug.** The
+slash is two alternatives for the learner to choose between — a reader would
+speak it as one sentence with a stray "per". Split it into two chunks, gated on
+the profile's marital field, and it becomes renderable.
+
+Also worth a look: `wer.js` treats a numeral transcription as an error, so
+`Március tizenötödikén` coming back as `Március 15én` scores 43% and lands in
+the "worse after encoding" warning. The clip is fine — the metric is not. Two
+clips are flagged this way today and both are false positives, which is the
+kind of noise that eventually gets a real warning ignored.
 
 **45 utterances cannot be pre-rendered for everyone** — 13 chunks and 32 model
 answers carry `___` slots filled from the learner's profile at runtime, so the
@@ -28,6 +45,22 @@ those keep the device voice. The gap falls almost entirely on the answer side,
 which the learner produces rather than listens to — except in Listening mode,
 where 13 chunks genuinely are meant to be heard.
 
+**That number is now much smaller than it looks, and nobody has acted on it.**
+Moving the intake to English (`public/profile.js`) turned the open-ended answers
+from free text into a fixed list of about 90 vetted Hungarian sentences. A slot
+filled from a closed set is not personalized in the way a town name is — there
+are only so many possible values, and they are all known at build time. Every
+`pick` option could be generated and shipped, so a learner who chooses "Mert a
+családom magyar származású…" hears the good voice saying it rather than the
+device one.
+
+What genuinely cannot be pre-rendered is much narrower: the free-text values —
+name, towns, ancestor name, children's names — and the sentences that embed
+them. Worth measuring properly before the next audio run, because it likely
+moves most of the answer side into the recorded catalogue and closes the
+Listening-mode gap without touching the privacy architecture at all. The cost is
+size: ~90 more clips at ~9 KB is under a megabyte.
+
 ## Personalized audio, generated locally
 
 Once a learner has filled in their profile, their 45 slotted utterances become
@@ -35,14 +68,18 @@ fixed strings and *can* be rendered — for them, on their machine. Worth doing:
 it closes the Listening-mode gap and makes every drill their own sentences in a
 real voice.
 
-**Design.** `fill()` and the harmony engine (`SUFFIX_PAIRS`, `withSuffix`,
-`harmony`) live in `public/app.js` and read `state.profile` directly. Extract
-them to `public/harmony.js`, loaded by `index.html` ahead of `app.js` and read
-by the scripts through the same sandbox trick already used for `data.js`, with
-the profile passed in rather than reached for. One implementation, no drift —
-duplicating the harmony rules into the build scripts would eventually produce
-audio that disagrees with the on-screen text, which is the worst possible bug
-here because the learner would trust the voice.
+**Design.** The harmony engine (`harmony`, `SUFFIX_PAIRS`, `withSuffix`, plus
+the number words) now lives in `public/harmony.js`, extracted when the intake
+moved to English and the profile composer needed the same rules. It is pure and
+reads no state, so the build scripts can load it through the same sandbox trick
+already used for `data.js`. One implementation, no drift — duplicating the
+harmony rules into the build scripts would eventually produce audio that
+disagrees with the on-screen text, which is the worst possible bug here because
+the learner would trust the voice.
+
+`fill()` is still in `app.js` and still reads `state.profile` directly. It has
+to be passed the profile rather than reaching for it before a script can call
+it.
 
 Profile values come from a gitignored `profile.local.json`; output goes to
 `public/audio/me/`, also gitignored.
@@ -106,6 +143,13 @@ There is no multi-tenancy to add because nothing is shared.
   model answers, the chunks, and any generated audio. Non-negotiable before
   strangers drill this for a real government interview. A wrong suffix or an
   off-register phrase becomes a mistake in someone else's mouth.
+- **Native-speaker review of every answer option in `public/profile.js`** —
+  roughly 90 Hungarian sentences, and they carry more risk than the curriculum
+  does. A learner picks these from an English list, so they cannot tell a
+  natural answer from a stilted one; whatever the option says is what they will
+  say to an official, with no way to notice it is wrong. Register matters
+  especially here — several are answers to "Miért szeretne magyar állampolgár
+  lenni?", where sounding rehearsed or foreign is the whole risk.
 - **Privacy policy** — required by both app stores even when nothing is
   collected.
 - **Disclaimer** — not legal advice, not affiliated with the Hungarian

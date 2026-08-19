@@ -4,13 +4,15 @@
  * Bump CACHE_VERSION on any release to retire the old files.
  */
 
-const CACHE_VERSION = 'hl-v8';
+const CACHE_VERSION = 'hl-v9';
 
 const ASSETS = [
   '.',
   'index.html',
   'style.css',
   'data.js',
+  'harmony.js',
+  'profile.js',
   'app.js',
   'manifest.json',
   'icon.svg',
